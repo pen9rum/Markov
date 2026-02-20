@@ -39,5 +39,11 @@ __pycache__/
 Thumbs.db
 # Analysis Results
 src/analysis_results/
+src/experiment_results/
+analysis_results/
+experiment_results/
+*.txt
+src/analysis_results/
 analysis_results/
 *.txt
+tools/

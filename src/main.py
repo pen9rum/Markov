@@ -142,7 +142,7 @@ def save_analysis_to_file(analysis_result: dict, filename: str = None):
             f.write("Metadata:\n")
             f.write("-"*80 + "\n")
             if 'response_metadata' in analysis_result:
-               pathadata = analysis_result['response_metadata']
+                metadata = analysis_result['response_metadata']
                 for key, value in metadata.items():
                     f.write(f"{key.capitalize()}: {value}\n")
         else:
