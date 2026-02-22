@@ -25,8 +25,7 @@ venv/
 ENV/
 env/
 markov_env/
-__pycache__/
-*.pyc
+
 # IDE
 .vscode/
 .idea/
@@ -37,13 +36,7 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
-# Analysis Results
+
+# Analysis Results - 只忽略结果目录下的txt文件
 src/analysis_results/
 src/experiment_results/
-analysis_results/
-experiment_results/
-*.txt
-src/analysis_results/
-analysis_results/
-*.txt
-tools/
