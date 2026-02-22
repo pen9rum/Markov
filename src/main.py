@@ -34,6 +34,7 @@ def analyze_game_trajectory_local(player1_id: str, player2_id: str,
                                   num_rounds: int,
                                   model_name: str = "Qwen/Qwen2.5-7B-Instruct") -> dict:
     """使用本地模型分析游戏轨迹"""
+    
     from analysis.llm_local import get_response_local
     
     knowledge_base = get_player_knowledge_base()

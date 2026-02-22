@@ -203,6 +203,15 @@ You are a Rock-Paper-Scissors strategy expert. Above is the background knowledge
 
 Now analyze a game where both players' identities are unknown based on their move trajectories:
 
+**CRITICAL CONSTRAINTS**:
+- Valid player identities are ONLY: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P (distribution strategies) and X, Y, Z (Markov/reactive strategies)
+- You MUST only use these 19 letters. Do NOT invent other letters like U, T, etc.
+At most, only one of the players will be Markov player (X, Y, Z). The other player will be from A-P. It is also possible that both players are from A-P.
+The Markov player's strategy comes from last player. Therefore, you have to analyze the trajectory every round to determine which player is Markov and which is distribution. If both players are from A-P, then you can analyze them as two distribution players.
+The best solution is to follow the following steps and think step by step:
+(1) Find out is there any player is Markov player (X, Y, Z) by analyzing the trajectory round by round. If there is a Markov player, then you can determine the other player's identity as well.
+(2) If there is no Markov player, then you can analyze the trajectory as two distribution players and find out the best matching identities for both players.
+(3) Based on the identified player identities, you can predict the next 100 rounds for both players and calculate the winning probabilities for each action (rock, paper, scissors) for both players.
 **Game Info**:
 - Total Rounds: {num_rounds}
 - Results: Player1 won {player1_wins}, Player2 won {player2_wins}, Draws {draws}
@@ -212,32 +221,10 @@ Now analyze a game where both players' identities are unknown based on their mov
 
 **Player2 Trajectory**:
 {player2_trajectory}
-
-**CRITICAL CONSTRAINTS**:
-- Valid player identities are ONLY: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P (distribution strategies) and X, Y, Z (Markov/reactive strategies)
-- You MUST only use these 19 letters. Do NOT invent other letters like U, T, etc.
-
-**IMPORTANT**: You must respond with ONLY a valid JSON object, no other text. Follow this exact structure:
-
-{{
-  "has_markov_player": true/false,
-  "markov_player": "player1" or "player2" or "both" or "neither",
-  "player1_identity": "single letter from A-P or X-Z only",
-  "player2_identity": "single letter from A-P or X-Z only",
-  "reasoning": {{
-    "player1_features": "observed characteristics",
-    "player2_features": "observed characteristics",
-    "key_evidence": "reasoning process"
-  }},
-  "prediction_next_100_rounds": {{
-    "player1": {{"rock": 0-100, "paper": 0-100, "scissors": 0-100}},
-    "player2": {{"rock": 0-100, "paper": 0-100, "scissors": 0-100}}
-  }}
-}}
-
-Example: {{"player1_identity": "A", "player2_identity": "D"}}
-
-Respond with ONLY the JSON object, nothing else.
+Please respond with a detailed analysis of the players' strategies, their most likely identities, and the predicted probabilities for their next moves. Be sure to justify your reasoning based on the trajectories and the knowledge base provided.
+After your detailed analysis, start your final answer with "Final Answer:" and provide the identified player identities and the predicted probabilities in a clear format with:
+Player1: Identity, Rock Probability, Paper Probability, Scissors Probability
+Player2: Identity, Rock Probability, Paper Probability, Scissors Probability
 """
     
     print(f"\n{'='*80}")
