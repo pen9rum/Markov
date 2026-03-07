@@ -40,3 +40,9 @@ Thumbs.db
 # Analysis Results - 只忽略结果目录下的txt文件
 src/analysis_results/
 src/experiment_results/
+
+# API Keys & Environment Variables
+.env
+.env.local
+*.key
+api_keys.txt

@@ -1,15 +1,9 @@
 """
-LLM模块 - 用于分析玩家行为 (使用Qwen API)
+LLM模块 - 用于分析玩家行为 (支持多種雲端API)
 
 支持的模型：
-- qwen-turbo: 快速响应，性价比高
-- qwen-plus: 平衡性能（推荐）
-- qwen-max: 最强性能
-- qwen-max-latest: 最新版本（可能包括3.5）
-- qwen2.5-72b-instruct: Qwen 2.5 开源版本
-- qwen2.5-32b-instruct: Qwen 2.5 中等规模
-- qwen2.5-14b-instruct: Qwen 2.5 小规模
-- qwen2.5-7b-instruct: Qwen 2.5 最小规模
+- Qwen API: qwen-plus, qwen-turbo, qwen-max-latest
+- Gemini API: gemini-3-flash-preview (Gemini 3 Flash), gemini-3.1-pro-preview (Gemini 3.1 Pro)
 """
 from typing import Tuple, Dict, Any
 import os
@@ -29,7 +23,7 @@ def get_response(prompt: str,
         prompt: 输入提示词
         model_name: 模型名称，建议使用:
                    - "qwen-plus" (推荐，平衡性能)
-                   - "qwen-max-latest" (最新最强，可能包括3.5)
+                   - "qwen-max-latest" (最新最强)
                    - "qwen-turbo" (快速便宜)
         api_key: API密钥，如果为None则从环境变量DASHSCOPE_API_KEY读取
         api_url: API端点
@@ -64,6 +58,87 @@ def get_response(prompt: str,
     
     result = response.json()
     output_text = result['choices'][0]['message']['content']
+    
+    return result, output_text
+
+
+def get_response_gemini(prompt: str,
+                        model_name: str = "gemini-3-flash-preview",
+                        api_key: str = None,
+                        temperature: float = 1.0,
+                        max_tokens: int = 8192,
+                        **kwargs) -> Tuple[dict, str]:
+    """
+    调用Gemini API获取响应
+    
+    Args:
+        prompt: 输入提示词
+        model_name: 模型名称，默认 gemini-3-flash-preview
+        api_key: API密钥，如果为None则从环境变量GEMINI_API_KEY读取
+        temperature: 温度参数 (0-2)
+        max_tokens: 最大生成token数
+        **kwargs: 其他参数
+    
+    Returns:
+        (响应字典, 输出文本)
+    """
+    # 获取API密钥
+    if api_key is None:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "API key not found. Please set GEMINI_API_KEY environment variable "
+                "or pass api_key parameter."
+            )
+    
+    # Gemini API endpoint
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
+    
+    # 构建请求
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": temperature,
+            "maxOutputTokens": max_tokens,
+            "thinkingConfig": {
+                "thinkingLevel": "low"
+            },
+            **kwargs
+        }
+    }
+    
+    # 发送请求（API key 作为查询参数）
+    params = {"key": api_key}
+    response = requests.post(api_url, headers=headers, json=payload, params=params)
+    
+    # 检查响应状态
+    if response.status_code != 200:
+        error_detail = response.json() if response.text else {"error": "Unknown error"}
+        raise Exception(f"Gemini API error: {response.status_code} - {error_detail}")
+    
+    result = response.json()
+    
+    # 提取文本输出
+    try:
+        output_text = result['candidates'][0]['content']['parts'][0]['text']
+    except (KeyError, IndexError) as e:
+        raise Exception(f"Failed to parse Gemini response: {e}\nResponse: {result}")
+    
+    # 构建元数据
+    metadata = {
+        "model": model_name,
+        "usage": result.get('usageMetadata', {}),
+    }
     
     return result, output_text
 
@@ -176,9 +251,11 @@ These players adapt their strategy based on opponent's previous moves:
 def analyze_game_trajectory(player1_id: str, player2_id: str, 
                             player1_trajectory: str, player2_trajectory: str,
                             player1_wins: int, player2_wins: int, draws: int,
-                            num_rounds: int) -> Dict[str, Any]:
+                            num_rounds: int,
+                            api_type: str = "qwen",
+                            model_name: str = None) -> Dict[str, Any]:
     """
-    使用LLM分析游戏轨迹
+    使用雲端LLM API分析游戏轨迹
     
     Args:
         player1_id: 玩家1 ID
@@ -189,6 +266,8 @@ def analyze_game_trajectory(player1_id: str, player2_id: str,
         player2_wins: 玩家2胜场
         draws: 平局数
         num_rounds: 总回合数
+        api_type: API类型，"qwen" 或 "gemini"
+        model_name: 模型名称，如果为None则使用默认值
     
     Returns:
         包含分析结果的字典
@@ -223,26 +302,41 @@ The best solution is to follow the following steps and think step by step:
 {player2_trajectory}
 Please respond with a detailed analysis of the players' strategies, their most likely identities, and the predicted probabilities for their next moves. Be sure to justify your reasoning based on the trajectories and the knowledge base provided.
 After your detailed analysis, start your final answer with "Final Answer:" and provide the identified player identities and the predicted probabilities in a clear format with:
-Player1: Identity, Rock Probability, Paper Probability, Scissors Probability
-Player2: Identity, Rock Probability, Paper Probability, Scissors Probability
+Player1: Identity, Rock count, Paper count, Scissors count
+Player2: Identity, Rock count, Paper count, Scissors count
+where count means the actual number of times the player played that action in the whole trajectory, which can be used to verify the correctness of your analysis.
 """
     
     print(f"\n{'='*80}")
-    print("Sending request to LLM for analysis...")
+    print(f"Sending request to {api_type.upper()} API for analysis...")
     print(f"{'='*80}\n")
     
     try:
-        response, output_text = get_response(prompt)
+        if api_type.lower() == "gemini":
+            # 使用 Gemini API
+            if model_name is None:
+                model_name = "gemini-3-flash-preview"
+            response, output_text = get_response_gemini(prompt, model_name=model_name)
+            metadata = {
+                "model": model_name,
+                "usage": response.get('usageMetadata', {}),
+            }
+        else:
+            # 使用 Qwen API (默认)
+            if model_name is None:
+                model_name = "qwen-plus"
+            response, output_text = get_response(prompt, model_name=model_name)
+            metadata = {
+                "model": response.get("model"),
+                "usage": response.get("usage"),
+            }
         
         return {
             "success": True,
             "player1_id": player1_id,
             "player2_id": player2_id,
             "analysis": output_text,
-            "response_metadata": {
-                "model": response.get("model"),
-                "usage": response.get("usage"),
-            }
+            "response_metadata": metadata
         }
     except Exception as e:
         return {

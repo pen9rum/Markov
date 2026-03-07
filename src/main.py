@@ -47,6 +47,15 @@ You are a Rock-Paper-Scissors strategy expert. Above is the background knowledge
 
 Now analyze a game where both players' identities are unknown based on their move trajectories:
 
+**CRITICAL CONSTRAINTS**:
+- Valid player identities are ONLY: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P (distribution strategies) and X, Y, Z (Markov/reactive strategies)
+- You MUST only use these 19 letters. Do NOT invent other letters like U, T, etc.
+At most, only one of the players will be Markov player (X, Y, Z). The other player will be from A-P. It is also possible that both players are from A-P.
+The Markov player's strategy comes from last player. Therefore, you have to analyze the trajectory every round to determine which player is Markov and which is distribution. If both players are from A-P, then you can analyze them as two distribution players.
+The best solution is to follow the following steps and think step by step:
+(1) Find out is there any player is Markov player (X, Y, Z) by analyzing the trajectory round by round. If there is a Markov player, then you can determine the other player's identity as well.
+(2) If there is no Markov player, then you can analyze the trajectory as two distribution players and find out the best matching identities for both players.
+(3) Based on the identified player identities, you can predict the next 100 rounds for both players and calculate the winning probabilities for each action (rock, paper, scissors) for both players.
 **Game Info**:
 - Total Rounds: {num_rounds}
 - Results: Player1 won {player1_wins}, Player2 won {player2_wins}, Draws {draws}
@@ -54,34 +63,13 @@ Now analyze a game where both players' identities are unknown based on their mov
 **Player1 Trajectory**:
 {player1_trajectory}
 
-**Player {player1_id} Trajectory**:
+**Player2 Trajectory**:
 {player2_trajectory}
-
-**CRITICAL CONSTRAINTS**:
-- Valid player identities are ONLY: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P (distribution strategies) and X, Y, Z (Markov/reactive strategies)
-- You MUST only use these 19 letters. Do NOT invent other letters like U, T, etc.
-
-**IMPORTANT**: You must respond with ONLY a valid JSON object, no other text. Follow this exact structure:
-
-{{
-  "has_markov_player": true/false,
-  "markov_player": "player1" or "player2" or "both" or "neither",
-  "player1_identity": "single letter from A-P or X-Z only",
-  "player2_identity": "single letter from A-P or X-Z only",
-  "reasoning": {{
-    "player1_features": "observed characteristics",
-    "player2_features": "observed characteristics",
-    "key_evidence": "reasoning process"
-  }},
-  "prediction_next_100_rounds": {{
-    "player1": {{"rock": 0-100, "paper": 0-100, "scissors": 0-100}},
-    "player2": {{"rock": 0-100, "paper": 0-100, "scissors": 0-100}}
-  }}
-}}
-
-Example: {{"player1_identity": "A", "player2_identity": "D"}}
-
-Respond with ONLY the JSON object, nothing else.
+Please respond with a detailed analysis of the players' strategies, their most likely identities, and the predicted probabilities for their next moves. Be sure to justify your reasoning based on the trajectories and the knowledge base provided.
+After your detailed analysis, start your final answer with "Final Answer:" and provide the identified player identities and the predicted probabilities in a clear format with:
+Player1: Identity, Rock count, Paper count, Scissors count
+Player2: Identity, Rock count, Paper count, Scissors count
+where count means the actual number of times the player played that action in the whole trajectory, which can be used to verify the correctness of your analysis.
 """
     
     print(f"\n{'='*80}")
@@ -111,18 +99,26 @@ Respond with ONLY the JSON object, nothing else.
         }
 
 
-def save_analysis_to_file(analysis_result: dict, filename: str = None):
+def save_analysis_to_file(analysis_result: dict, filename: str = None, 
+                          player1_trajectory: str = None, player2_trajectory: str = None,
+                          player1_stats: dict = None, player2_stats: dict = None):
     """保存分析结果到文件"""
-    # 确保输出目录存在
-    if not os.path.exists(ANALYSIS_OUTPUT_DIR):
-        os.makedirs(ANALYSIS_OUTPUT_DIR)
+    # 獲取模型名稱
+    model_name = "unknown"
+    if 'response_metadata' in analysis_result and 'model' in analysis_result['response_metadata']:
+        model_name = analysis_result['response_metadata']['model']
+    
+    # 创建包含模型名称的输出目录
+    output_dir = os.path.join(ANALYSIS_OUTPUT_DIR, model_name)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"analysis_{analysis_result['player1_id']}_vs_{analysis_result['player2_id']}_{timestamp}.txt"
     
     # 完整路径
-    filepath = os.path.join(ANALYSIS_OUTPUT_DIR, filename)
+    filepath = os.path.join(output_dir, filename)
     
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write("="*80 + "\n")
@@ -132,6 +128,32 @@ def save_analysis_to_file(analysis_result: dict, filename: str = None):
         if analysis_result['success']:
             f.write(f"Match: {analysis_result['player1_id']} vs {analysis_result['player2_id']}\n")
             f.write(f"Analysis Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
+            # 添加實際軌跡和統計信息
+            if player1_trajectory or player2_trajectory:
+                f.write("-"*80 + "\n")
+                f.write("Actual Game Data\n")
+                f.write("-"*80 + "\n\n")
+                
+                if player1_trajectory:
+                    f.write(f"Player1 ({analysis_result['player1_id']}) Trajectory:\n")
+                    f.write(f"{player1_trajectory}\n\n")
+                
+                if player2_trajectory:
+                    f.write(f"Player2 ({analysis_result['player2_id']}) Trajectory:\n")
+                    f.write(f"{player2_trajectory}\n\n")
+                
+                if player1_stats:
+                    f.write(f"Player1 Actual Distribution:\n")
+                    f.write(f"  Rock: {player1_stats.get('rock', 0)} ({player1_stats.get('rock_pct', 0):.1f}%)\n")
+                    f.write(f"  Paper: {player1_stats.get('paper', 0)} ({player1_stats.get('paper_pct', 0):.1f}%)\n")
+                    f.write(f"  Scissors: {player1_stats.get('scissors', 0)} ({player1_stats.get('scissors_pct', 0):.1f}%)\n\n")
+                
+                if player2_stats:
+                    f.write(f"Player2 Actual Distribution:\n")
+                    f.write(f"  Rock: {player2_stats.get('rock', 0)} ({player2_stats.get('rock_pct', 0):.1f}%)\n")
+                    f.write(f"  Paper: {player2_stats.get('paper', 0)} ({player2_stats.get('paper_pct', 0):.1f}%)\n")
+                    f.write(f"  Scissors: {player2_stats.get('scissors', 0)} ({player2_stats.get('scissors_pct', 0):.1f}%)\n\n")
             
             f.write("-"*80 + "\n")
             f.write("LLM Analysis:\n")
@@ -202,9 +224,10 @@ def main():
         print("2. Qwen2.5-3B (本地，平衡)")
         print("3. Qwen2.5-7B (本地，推荐，需要GPU)")
         print("4. 自定义本地模型名称")
-        print("5. Qwen云端API (需要API key)")
+        print("5. Qwen云端API (需要DASHSCOPE_API_KEY)")
+        print("6. Gemini 3 Flash (需要GEMINI_API_KEY)")
         
-        choice = input("选择 (1-5): ").strip()
+        choice = input("选择 (1-6): ").strip()
         
         # 获取轨迹
         player1_trajectory = result.get_trajectory_string(1)
@@ -213,7 +236,7 @@ def main():
         analysis_result = None
         
         if choice == "5":
-            # 云端API
+            # Qwen 云端API
             print("\n使用Qwen云端API...")
             from analysis.llm import analyze_game_trajectory
             
@@ -225,7 +248,24 @@ def main():
                 player1_wins=result.player1_wins,
                 player2_wins=result.player2_wins,
                 draws=result.draws,
-                num_rounds=num_rounds
+                num_rounds=num_rounds,
+                api_type="qwen"
+            )
+        elif choice == "6":
+            # Gemini 云端API
+            print("\n使用Gemini 3 Flash API...")
+            from analysis.llm import analyze_game_trajectory
+            
+            analysis_result = analyze_game_trajectory(
+                player1_id=player1_id,
+                player2_id=player2_id,
+                player1_trajectory=player1_trajectory,
+                player2_trajectory=player2_trajectory,
+                player1_wins=result.player1_wins,
+                player2_wins=result.player2_wins,
+                draws=result.draws,
+                num_rounds=num_rounds,
+                api_type="gemini"
             )
         else:
             # 本地模型
@@ -276,7 +316,32 @@ def main():
             # 询问是否保存
             print("\n是否保存分析结果到文件？(y/n): ", end="")
             if input().strip().lower() == 'y':
-                filename = save_analysis_to_file(analysis_result)
+                # 計算實際分布統計
+                def calculate_stats(trajectory):
+                    moves = trajectory.split()  # 用空格分隔
+                    total = len(moves)
+                    rock = moves.count('Rock')
+                    paper = moves.count('Paper')
+                    scissors = moves.count('Scissors')
+                    return {
+                        'rock': rock,
+                        'rock_pct': (rock / total * 100) if total > 0 else 0,
+                        'paper': paper,
+                        'paper_pct': (paper / total * 100) if total > 0 else 0,
+                        'scissors': scissors,
+                        'scissors_pct': (scissors / total * 100) if total > 0 else 0,
+                    }
+                
+                player1_stats = calculate_stats(player1_trajectory)
+                player2_stats = calculate_stats(player2_trajectory)
+                
+                filename = save_analysis_to_file(
+                    analysis_result,
+                    player1_trajectory=player1_trajectory,
+                    player2_trajectory=player2_trajectory,
+                    player1_stats=player1_stats,
+                    player2_stats=player2_stats
+                )
                 print(f"\n分析结果已保存到: {filename}")
         elif analysis_result:
             print(f"\nLLM分析失败: {analysis_result.get('error', 'Unknown error')}")
