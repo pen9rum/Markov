@@ -41,6 +41,9 @@ Thumbs.db
 src/analysis_results/
 src/experiment_results/
 
+# Batch Experiment Results
+batch_results/
+
 # API Keys & Environment Variables
 .env
 .env.local

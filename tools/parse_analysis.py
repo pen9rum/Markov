@@ -41,9 +41,10 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
     # 格式1: Player1: G, 0.5, 0.3, 0.2
     # 格式2: Player1: G, Rock 0, Paper 50, Scissors 50
     # 格式3: Player1: G, 0, 50, 50
+    # 格式4: Player1: G, Rock count 31, Paper count 30, Scissors count 39
     
-    # 先嘗試格式2（帶標籤的次數格式）
-    player_pattern_labeled = r'Player([12]):\s*([A-Z]),?\s*Rock\s+([\d.]+),?\s*Paper\s+([\d.]+),?\s*Scissors\s+([\d.]+)'
+    # 先嘗試格式2和4（帶標籤的次數格式，可選 "count" 關鍵字）
+    player_pattern_labeled = r'Player([12]):\s*([A-Z]),?\s*Rock\s+(?:count\s+)?([\d.]+),?\s*Paper\s+(?:count\s+)?([\d.]+),?\s*Scissors\s+(?:count\s+)?([\d.]+)'
     
     # 再嘗試格式1和3（純數字格式）
     player_pattern_simple = r'Player([12]):\s*([A-Z]),?\s*([\d.]+),?\s*([\d.]+),?\s*([\d.]+)'
