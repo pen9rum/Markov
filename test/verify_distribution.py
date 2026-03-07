@@ -1,8 +1,14 @@
 """
 验证所有玩家的分布是否正确
 """
-from game import Game
-from players import PLAYER_CONFIGS, Action
+import sys
+import os
+
+# 添加父目录到路径以便导入 src 模块
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.core.game import Game
+from src.core.players import PLAYER_CONFIGS, Action
 
 
 def verify_player_distribution(player_id: str, num_rounds: int):

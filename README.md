@@ -203,81 +203,199 @@ pip install transformers torch
 
 ---
 
-## 🔧 批量实验工具
+## 🔧 工具集 (tools/)
 
-位于 `tools/` 目录，提供批量实验和分析结果解析功能。
+### 1. 批量實驗工具 (batch_experiment.py)
 
-### 1. 批量实验工具
+運行批量游戲實驗和LLM分析
 
-**运行批量实验**
+**使用方法**
 ```bash
-# Windows
-tools\run_experiment.bat
-
-# PowerShell
-.\tools\run_experiment.ps1
-
-# Linux/Mac
-./tools/run_experiment.sh
+python tools/batch_experiment.py
 ```
 
 **功能**
-- 自动排除双马可夫组合
-- 两种实验类型：
-  - 都是非马可夫（A-P vs A-P）
-  - 有一个马可夫（X-Z vs A-P）
-- 随机抽取指定数量组合
-- 批量LLM分析
-- 结果保存为JSON格式
+- 自動排除雙Markov組合
+- 兩種實驗類型：
+  1. 都是非Markov（A-P vs A-P）
+  2. 有一個Markov（X-Z vs A-P）
+- 隨機抽取指定數量組合
+- 使用相同LLM模型批量分析
+- 結果保存為JSON格式
 
-**输出位置**
-```
-src/experiment_results/
-└── experiment_{type}_{timestamp}.json
-```
+**輸出**
+- 位置：`src/experiment_results/`
+- 格式：`experiment_{type}_{timestamp}.json`
+- 包含：真實身份、軌跡、LLM預測結果
 
-### 2. 分析结果解析工具
+---
 
-从LLM分析文本中提取结构化JSON数据。
+### 2. 分析結果解析工具 (parse_analysis.py)
 
-**基本用法**
+從LLM分析文本中提取結構化JSON數據，包含真實數據(ground truth)和LLM預測結果
+
+**使用方法**
+
+**基本用法（輸出到屏幕）：**
 ```bash
-# 输出到屏幕
 python tools/parse_analysis.py input.txt
-
-# 保存到JSON文件
-python tools/parse_analysis.py input.txt -o output.json
-
-# 使用快捷脚本（Windows）
-tools\parse_analysis.bat input.txt output.json
 ```
 
-**批量处理（PowerShell）**
+**保存到JSON文件：**
+```bash
+python tools/parse_analysis.py input.txt -o output.json
+```
+
+**推薦的文件組織結構：**
+```bash
+# 按模型名稱組織輸出
+python tools/parse_analysis.py "analysis_results/gemini-3-flash-preview/analysis.txt" -o "parsed_output/gemini-3-flash-preview/parsed_result.json"
+```
+
+**包含完整原始文本：**
+```bash
+python tools/parse_analysis.py input.txt -o output.json --full-text
+```
+
+**從stdin讀取：**
+```bash
+cat analysis.txt | python tools/parse_analysis.py -
+```
+
+**批量處理（PowerShell）：**
 ```powershell
-Get-ChildItem src/analysis_results/*.txt | ForEach-Object {
-    python tools/parse_analysis.py $_.FullName -o "$($_.BaseName)_parsed.json"
+# 確保目錄存在
+mkdir -p parsed_output/gemini-3-flash-preview
+
+# 批量解析
+Get-ChildItem analysis_results/gemini-3-flash-preview/*.txt | ForEach-Object {
+    $outputPath = "parsed_output/gemini-3-flash-preview/" + $_.BaseName + ".json"
+    python tools/parse_analysis.py $_.FullName -o $outputPath
 }
 ```
 
-**输出格式**
+**輸出格式**
 ```json
 {
   "parse_success": true,
-  "players": {
+  "ground_truth": {
+    "player1_identity": "G",
+    "player2_identity": "P",
     "player1": {
-      "identity": "X",
-      "probabilities": {"rock": 0.33, "paper": 0.33, "scissors": 0.34}
+      "counts": {
+        "rock": 0,
+        "paper": 250,
+        "scissors": 250
+      },
+      "probabilities": {
+        "rock": 0.0,
+        "paper": 0.5,
+        "scissors": 0.5
+      }
     },
     "player2": {
-      "identity": "A",
-      "probabilities": {"rock": 0.0, "paper": 0.0, "scissors": 1.0}
+      "counts": {
+        "rock": 84,
+        "paper": 166,
+        "scissors": 250
+      },
+      "probabilities": {
+        "rock": 0.168,
+        "paper": 0.332,
+        "scissors": 0.5
+      }
     }
   },
-  "markov_detection": "player1"
+  "predictions": {
+    "player1": {
+      "identity": "G",
+      "counts": {
+        "rock": 0,
+        "paper": 227,
+        "scissors": 273
+      },
+      "probabilities": {
+        "rock": 0.0,
+        "paper": 0.454,
+        "scissors": 0.546
+      }
+    },
+    "player2": {
+      "identity": "X",
+      "counts": {
+        "rock": 93,
+        "paper": 134,
+        "scissors": 273
+      },
+      "probabilities": {
+        "rock": 0.186,
+        "paper": 0.268,
+        "scissors": 0.546
+      }
+    }
+  },
+  "markov_detection": null,
+  "error": null
 }
 ```
 
-详见：[tools/README.md](tools/README.md) | [tools/PARSE_ANALYSIS_README.md](tools/PARSE_ANALYSIS_README.md)
+**支持的輸入格式**
+
+LLM分析結果格式：
+```
+Final Answer:
+Player1: G, 0.5, 0.3, 0.2
+Player2: P, 0.167, 0.333, 0.5
+```
+
+或帶標籤的次數格式（推薦）：
+```
+**Final Answer:**
+Player1: G, Rock 0, Paper 227, Scissors 273
+Player2: P, Rock 17, Paper 33, Scissors 50
+```
+
+真實數據格式（從分析文件中自動提取）：
+```
+Match: G vs P
+
+Player1 Actual Distribution:
+  Rock: 0 (0.0%)
+  Paper: 250 (50.0%)
+  Scissors: 250 (50.0%)
+
+Player2 Actual Distribution:
+  Rock: 84 (16.8%)
+  Paper: 166 (33.2%)
+  Scissors: 250 (50.0%)
+```
+
+**參數說明**
+- `input`: 輸入文件路徑（使用 `-` 表示從stdin讀取）
+- `-o, --output`: 輸出JSON文件路徑（默認輸出到stdout）
+- `--full-text`: 在JSON中包含完整的原始分析文本
+- `--no-json`: 只顯示解析狀態，不輸出JSON
+
+**作為Python模組使用**
+```python
+from tools.parse_analysis import parse_analysis_result
+
+with open('analysis.txt', 'r', encoding='utf-8') as f:
+    text = f.read()
+
+result = parse_analysis_result(text)
+
+# 檢查解析是否成功
+if result['parse_success']:
+    print(f"真實: {result['ground_truth']['player1_identity']} vs {result['ground_truth']['player2_identity']}")
+    print(f"預測: {result['predictions']['player1']['identity']} vs {result['predictions']['player2']['identity']}")
+```
+
+**注意事項**
+1. 確保LLM輸出包含 "Final Answer:" 或 "**Final Answer:**" 標記
+2. 身份必須是 A-P 或 X-Z
+3. 支持概率格式（0-1）和次數格式（自動轉換）
+4. 自動從文件中提取真實的玩家身份和分布數據
 
 ---
 
@@ -295,12 +413,10 @@ Markov/
 │   ├── main.py                    # 主程序入口
 │   ├── analysis_results/          # 分析结果保存目录
 │   └── experiment_results/        # 实验结果保存目录
-├── tools/                         # 批量实验和分析工具
-│   ├── batch_experiment.py        # 批量实验脚本
-│   ├── parse_analysis.py          # 分析结果解析工具
-│   ├── run_experiment.bat         # Windows批量实验启动脚本
-│   ├── parse_analysis.bat         # Windows解析工具启动脚本
-│   └── README.md                  # 工具使用文档
+├── tools/                         # 批量實驗和分析工具
+│   ├── batch_experiment.py        # 批量實驗腳本
+│   ├── parse_analysis.py          # 分析結果解析工具
+│   └── README.md                  # 工具使用文檔
 ├── test/
 │   └── verify_distribution.py     # 分布验证测试
 ├── markov_env/                    # Python虚拟环境
@@ -394,8 +510,6 @@ PLAYER_CONFIGS = {
 
 ---
 
-**相关文档**
-- [云端API设置指南](SETUP.md)
-- [本地模型设置指南](LOCAL_SETUP.md)
-- [批量实验工具文档](tools/README.md)
-- [分析解析工具文档](tools/PARSE_ANALYSIS_README.md)
+**相關文檔**
+- [雲端API設置指南](SETUP.md)
+- [本地模型設置指南](LOCAL_SETUP.md)

@@ -1,0 +1,61 @@
+{
+  "parse_success": true,
+  "ground_truth": {
+    "player1_identity": "G",
+    "player2_identity": "P",
+    "player1": {
+      "counts": {
+        "rock": 0,
+        "paper": 250,
+        "scissors": 250
+      },
+      "probabilities": {
+        "rock": 0.0,
+        "paper": 0.5,
+        "scissors": 0.5
+      }
+    },
+    "player2": {
+      "counts": {
+        "rock": 84,
+        "paper": 166,
+        "scissors": 250
+      },
+      "probabilities": {
+        "rock": 0.168,
+        "paper": 0.332,
+        "scissors": 0.5
+      }
+    }
+  },
+  "predictions": {
+    "player1": {
+      "identity": "G",
+      "counts": {
+        "rock": 0,
+        "paper": 227,
+        "scissors": 273
+      },
+      "probabilities": {
+        "rock": 0.0,
+        "paper": 0.454,
+        "scissors": 0.546
+      }
+    },
+    "player2": {
+      "identity": "X",
+      "counts": {
+        "rock": 93,
+        "paper": 134,
+        "scissors": 273
+      },
+      "probabilities": {
+        "rock": 0.186,
+        "paper": 0.268,
+        "scissors": 0.546
+      }
+    }
+  },
+  "markov_detection": null,
+  "error": null
+}

@@ -13,10 +13,10 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
     """
     从LLM输出中解析Final Answer部分
     
-    期望格式:
-    Final Answer:
-    Player1: Identity, Rock Probability, Paper Probability, Scissors Probability
-    Player2: Identity, Rock Probability, Paper Probability, Scissors Probability
+    支持格式:
+    1. 概率格式: Player1: G, 0.5, 0.3, 0.2
+    2. 次數格式: Player1: G, Rock 0, Paper 50, Scissors 50
+    3. 混合格式: Player1: G, 0, 50, 50
     
     Args:
         text: LLM的完整输出文本
@@ -24,8 +24,11 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
     Returns:
         解析后的JSON结构，如果解析失败则返回None
     """
-    # 查找Final Answer部分
-    final_answer_match = re.search(r'Final Answer:\s*\n(.*?)(?:\n\n|\Z)', text, re.DOTALL | re.IGNORECASE)
+    # 查找Final Answer部分（支持加粗的**Final Answer:**）
+    final_answer_match = re.search(r'\*\*Final Answer:\*\*\s*\n(.*?)(?:\n\n|\Z)', text, re.DOTALL | re.IGNORECASE)
+    
+    if not final_answer_match:
+        final_answer_match = re.search(r'Final Answer:\s*\n(.*?)(?:\n\n|\Z)', text, re.DOTALL | re.IGNORECASE)
     
     if not final_answer_match:
         print("警告: 未找到 'Final Answer:' 标记")
@@ -34,17 +37,26 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
     final_answer_text = final_answer_match.group(1).strip()
     
     # 解析Player1和Player2的信息
-    # 格式: Player1: X, 0.33, 0.33, 0.34
-    player_pattern = r'Player([12]):\s*([A-Z]),?\s*([\d.]+),?\s*([\d.]+),?\s*([\d.]+)'
+    # 支持多種格式:
+    # 格式1: Player1: G, 0.5, 0.3, 0.2
+    # 格式2: Player1: G, Rock 0, Paper 50, Scissors 50
+    # 格式3: Player1: G, 0, 50, 50
+    
+    # 先嘗試格式2（帶標籤的次數格式）
+    player_pattern_labeled = r'Player([12]):\s*([A-Z]),?\s*Rock\s+([\d.]+),?\s*Paper\s+([\d.]+),?\s*Scissors\s+([\d.]+)'
+    
+    # 再嘗試格式1和3（純數字格式）
+    player_pattern_simple = r'Player([12]):\s*([A-Z]),?\s*([\d.]+),?\s*([\d.]+),?\s*([\d.]+)'
     
     players_data = {}
     
-    for match in re.finditer(player_pattern, final_answer_text, re.IGNORECASE):
+    # 先嘗試帶標籤的格式
+    for match in re.finditer(player_pattern_labeled, final_answer_text, re.IGNORECASE):
         player_num = match.group(1)
         identity = match.group(2).upper()
-        rock_prob = float(match.group(3))
-        paper_prob = float(match.group(4))
-        scissors_prob = float(match.group(5))
+        rock_val = float(match.group(3))
+        paper_val = float(match.group(4))
+        scissors_val = float(match.group(5))
         
         # 验证identity是否有效
         valid_identities = set('ABCDEFGHIJKLMNOPXYZ')
@@ -52,19 +64,70 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
             print(f"警告: Player{player_num} 的身份 '{identity}' 无效")
             continue
         
-        # 验证概率总和（允许一定误差）
-        prob_sum = rock_prob + paper_prob + scissors_prob
-        if abs(prob_sum - 1.0) > 0.05:
-            print(f"警告: Player{player_num} 的概率总和为 {prob_sum}，不等于1.0")
+        # 如果數值大於1，視為次數，需要轉換為概率
+        total = rock_val + paper_val + scissors_val
+        if total > 3:  # 很可能是次數而非概率
+            rock_prob = rock_val / total if total > 0 else 0
+            paper_prob = paper_val / total if total > 0 else 0
+            scissors_prob = scissors_val / total if total > 0 else 0
+        else:
+            rock_prob = rock_val
+            paper_prob = paper_val
+            scissors_prob = scissors_val
         
         players_data[f'player{player_num}'] = {
             'identity': identity,
+            'counts': {
+                'rock': int(rock_val),
+                'paper': int(paper_val),
+                'scissors': int(scissors_val)
+            },
             'probabilities': {
                 'rock': rock_prob,
                 'paper': paper_prob,
                 'scissors': scissors_prob
             }
         }
+    
+    # 如果沒有找到帶標籤的格式，嘗試簡單格式
+    if len(players_data) == 0:
+        for match in re.finditer(player_pattern_simple, final_answer_text, re.IGNORECASE):
+            player_num = match.group(1)
+            identity = match.group(2).upper()
+            rock_val = float(match.group(3))
+            paper_val = float(match.group(4))
+            scissors_val = float(match.group(5))
+            
+            # 验证identity是否有效
+            valid_identities = set('ABCDEFGHIJKLMNOPXYZ')
+            if identity not in valid_identities:
+                print(f"警告: Player{player_num} 的身份 '{identity}' 无效")
+                continue
+            
+            # 如果數值大於1，視為次數，需要轉換為概率
+            total = rock_val + paper_val + scissors_val
+            if total > 3:  # 很可能是次數而非概率
+                rock_prob = rock_val / total if total > 0 else 0
+                paper_prob = paper_val / total if total > 0 else 0
+                scissors_prob = scissors_val / total if total > 0 else 0
+            else:
+                rock_prob = rock_val
+                paper_prob = paper_val
+                scissors_prob = scissors_val
+            
+            players_data[f'player{player_num}'] = {
+                'identity': identity,
+                'counts': {
+                    'rock': int(rock_val),
+                    'paper': int(paper_val),
+                    'scissors': int(scissors_val)
+                },
+                'probabilities': {
+                    'rock': rock_prob,
+                    'paper': paper_prob,
+                    'scissors': scissors_prob
+                }
+            }
     
     if len(players_data) != 2:
         print(f"警告: 只解析到 {len(players_data)} 个玩家的信息")
@@ -115,6 +178,69 @@ def detect_markov_player(text: str) -> Optional[str]:
     return None
 
 
+def parse_ground_truth(text: str) -> Optional[Dict[str, Any]]:
+    """
+    從分析文件中解析真實的玩家身份和實際分布
+    
+    Returns:
+        包含真實數據的字典，如果解析失败則返回None
+    """
+    ground_truth = {}
+    
+    # 解析 Match 行，提取真實玩家身份
+    # 格式: Match: G vs P
+    match_pattern = r'Match:\s*([A-Z])\s+vs\s+([A-Z])'
+    match_result = re.search(match_pattern, text, re.IGNORECASE)
+    
+    if match_result:
+        ground_truth['player1_identity'] = match_result.group(1).upper()
+        ground_truth['player2_identity'] = match_result.group(2).upper()
+    
+    # 解析 Player1 Actual Distribution
+    # 格式:
+    # Player1 Actual Distribution:
+    #   Rock: 0 (0.0%)
+    #   Paper: 250 (50.0%)
+    #   Scissors: 250 (50.0%)
+    
+    player1_dist_pattern = r'Player1 Actual Distribution:\s*\n\s*Rock:\s*(\d+)\s*\(([0-9.]+)%\)\s*\n\s*Paper:\s*(\d+)\s*\(([0-9.]+)%\)\s*\n\s*Scissors:\s*(\d+)\s*\(([0-9.]+)%\)'
+    player1_match = re.search(player1_dist_pattern, text, re.IGNORECASE)
+    
+    if player1_match:
+        ground_truth['player1'] = {
+            'counts': {
+                'rock': int(player1_match.group(1)),
+                'paper': int(player1_match.group(3)),
+                'scissors': int(player1_match.group(5))
+            },
+            'probabilities': {
+                'rock': float(player1_match.group(2)) / 100,
+                'paper': float(player1_match.group(4)) / 100,
+                'scissors': float(player1_match.group(6)) / 100
+            }
+        }
+    
+    # 解析 Player2 Actual Distribution
+    player2_dist_pattern = r'Player2 Actual Distribution:\s*\n\s*Rock:\s*(\d+)\s*\(([0-9.]+)%\)\s*\n\s*Paper:\s*(\d+)\s*\(([0-9.]+)%\)\s*\n\s*Scissors:\s*(\d+)\s*\(([0-9.]+)%\)'
+    player2_match = re.search(player2_dist_pattern, text, re.IGNORECASE)
+    
+    if player2_match:
+        ground_truth['player2'] = {
+            'counts': {
+                'rock': int(player2_match.group(1)),
+                'paper': int(player2_match.group(3)),
+                'scissors': int(player2_match.group(5))
+            },
+            'probabilities': {
+                'rock': float(player2_match.group(2)) / 100,
+                'paper': float(player2_match.group(4)) / 100,
+                'scissors': float(player2_match.group(6)) / 100
+            }
+        }
+    
+    return ground_truth if ground_truth else None
+
+
 def parse_analysis_result(analysis_text: str, include_full_text: bool = False) -> Dict[str, Any]:
     """
     完整解析分析结果
@@ -128,17 +254,23 @@ def parse_analysis_result(analysis_text: str, include_full_text: bool = False) -
     """
     result = {
         "parse_success": False,
-        "players": None,
+        "ground_truth": None,
+        "predictions": None,
         "markov_detection": None,
         "error": None
     }
     
-    # 解析Final Answer
+    # 解析真實數據 (Ground Truth)
+    ground_truth = parse_ground_truth(analysis_text)
+    if ground_truth:
+        result["ground_truth"] = ground_truth
+    
+    # 解析LLM預測 (Final Answer)
     players_data = parse_final_answer(analysis_text)
     
     if players_data:
         result["parse_success"] = True
-        result["players"] = players_data
+        result["predictions"] = players_data
     else:
         result["error"] = "Failed to parse Final Answer section"
     
@@ -251,9 +383,13 @@ def main():
     # 输出解析状态
     if result['parse_success']:
         print(f"✓ 解析成功", file=sys.stderr)
-        if result['players']:
-            for player_key, player_data in result['players'].items():
-                print(f"  {player_key}: {player_data['identity']}", file=sys.stderr)
+        if result.get('ground_truth'):
+            gt = result['ground_truth']
+            if 'player1_identity' in gt and 'player2_identity' in gt:
+                print(f"  真實: {gt['player1_identity']} vs {gt['player2_identity']}", file=sys.stderr)
+        if result.get('predictions'):
+            for player_key, player_data in result['predictions'].items():
+                print(f"  預測 {player_key}: {player_data['identity']}", file=sys.stderr)
     else:
         print(f"✗ 解析失败: {result.get('error')}", file=sys.stderr)
         sys.exit(1)
