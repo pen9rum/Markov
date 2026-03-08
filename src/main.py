@@ -55,7 +55,7 @@ The Markov player's strategy comes from last player. Therefore, you have to anal
 The best solution is to follow the following steps and think step by step:
 (1) Find out is there any player is Markov player (X, Y, Z) by analyzing the trajectory round by round. If there is a Markov player, then you can determine the other player's identity as well.
 (2) If there is no Markov player, then you can analyze the trajectory as two distribution players and find out the best matching identities for both players.
-(3) Based on the identified player identities, you can predict the next 100 rounds for both players and calculate the winning probabilities for each action (rock, paper, scissors) for both players.
+(3) Based on the identified player identities, count how many times rock, paper, and scissors appear in each player’s 100-round trajectory.
 **Game Info**:
 - Total Rounds: {num_rounds}
 - Results: Player1 won {player1_wins}, Player2 won {player2_wins}, Draws {draws}
