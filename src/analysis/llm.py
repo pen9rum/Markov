@@ -11,6 +11,22 @@ import requests
 import json
 
 
+# 自动加载 .env 文件
+def load_env_file():
+    """从 .env 文件加载环境变量"""
+    env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ.setdefault(key.strip(), value.strip())
+
+# 启动时自动加载
+load_env_file()
+
+
 def get_response(prompt: str,
                  model_name: str = "qwen-plus",
                  api_key: str = None,
@@ -139,6 +155,157 @@ def get_response_gemini(prompt: str,
         "model": model_name,
         "usage": result.get('usageMetadata', {}),
     }
+    
+    return result, output_text
+
+def get_response_openai(prompt: str,
+                        model_name: str = "gpt-5-mini",
+                        api_key: str = None,
+                        max_tokens: int = 8192,
+                        reasoning_effort: str = "low",
+                        verbosity: str = "low",
+                        **kwargs) -> Tuple[dict, str]:
+    """
+    调用 OpenAI Responses API 获取响应
+    """
+    if api_key is None:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "API key not found. Please set OPENAI_API_KEY environment variable "
+                "or pass api_key parameter."
+            )
+
+    api_url = "https://api.openai.com/v1/responses"
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": model_name,
+        "input": prompt,
+        "max_output_tokens": max_tokens,
+        "reasoning": {
+            "effort": reasoning_effort
+        },
+        "text": {
+            "verbosity": verbosity
+        }
+    }
+    payload.update(kwargs)
+
+    response = requests.post(api_url, headers=headers, json=payload)
+
+    if response.status_code != 200:
+        try:
+            error_detail = response.json()
+        except Exception:
+            error_detail = response.text
+        raise Exception(f"OpenAI API error: {response.status_code} - {error_detail}")
+
+    result = response.json()
+
+    # 先嘗試頂層 convenience 欄位
+    output_text = result.get("output_text", "")
+
+    # 如果沒有，就手動從 output 陣列裡抽文字
+    if not output_text:
+        texts = []
+        for item in result.get("output", []):
+            if item.get("type") == "message":
+                for content in item.get("content", []):
+                    if content.get("type") == "output_text":
+                        texts.append(content.get("text", ""))
+        output_text = "\n".join(t for t in texts if t)
+
+    # 真的還是空，再印完整 raw response
+    if not output_text:
+        print("OpenAI raw response:")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    return result, output_text
+
+def get_response_deepseek(prompt: str,
+                          model_name: str = "deepseek-chat",
+                          api_key: str = None,
+                          max_tokens: int = 8192,
+                          **kwargs) -> Tuple[dict, str]:
+    """
+    调用DeepSeek API获取响应
+    
+    Args:
+        prompt: 输入提示词
+        model_name: 模型名称，默认 deepseek-chat (支持 deepseek-chat, deepseek-reasoner)
+        api_key: API密钥，如果为None则从环境变量DEEPSEEK_API_KEY读取
+        max_tokens: 最大生成token数
+        **kwargs: 其他参数
+    
+    Returns:
+        (响应字典, 输出文本)
+    """
+    # 获取API密钥
+    if api_key is None:
+        api_key = os.environ.get("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "API key not found. Please set DEEPSEEK_API_KEY environment variable "
+                "or pass api_key parameter."
+            )
+    
+    # DeepSeek API endpoint (OpenAI-compatible)
+    api_url = "https://api.deepseek.com/v1/chat/completions"
+    
+    # 构建请求
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": max_tokens,
+        **kwargs
+    }
+    
+    # 发送请求
+    response = requests.post(api_url, headers=headers, json=payload)
+    
+    # 检查响应状态
+    if response.status_code != 200:
+        try:
+            error_detail = response.json()
+        except Exception:
+            error_detail = response.text
+        raise Exception(f"DeepSeek API error: {response.status_code} - {error_detail}")
+    
+    result = response.json()
+    
+    # 提取文本输出
+    try:
+        message = result["choices"][0]["message"]
+        reasoning_content = message.get("reasoning_content", "")
+        content = message.get("content", "")
+        
+        # debug 用 - 如果有 reasoning_content，顯示前 1000 字
+        if reasoning_content:
+            print("DeepSeek reasoning_content (前1000字):")
+            print(reasoning_content[:1000])
+        
+        # 如果 content 是空的，印出完整回應
+        if not content:
+            print("DeepSeek raw response:")
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        
+        # 優先使用 content，如果沒有則用 reasoning_content
+        output_text = content or reasoning_content
+        
+    except (KeyError, IndexError) as e:
+        raise Exception(f"Failed to parse DeepSeek response: {e}\nResponse: {result}")
     
     return result, output_text
 
@@ -320,6 +487,24 @@ where count means the actual number of times the player played that action in th
             metadata = {
                 "model": model_name,
                 "usage": response.get('usageMetadata', {}),
+            }
+        elif api_type.lower() == "openai":
+            # 使用 OpenAI API
+            if model_name is None:
+                model_name = "gpt-5-mini"
+            response, output_text = get_response_openai(prompt, model_name=model_name)
+            metadata = {
+                "model": response.get("model"),
+                "usage": response.get("usage"),
+            }
+        elif api_type.lower() == "deepseek":
+            # 使用 DeepSeek API
+            if model_name is None:
+                model_name = "deepseek-chat"
+            response, output_text = get_response_deepseek(prompt, model_name=model_name)
+            metadata = {
+                "model": response.get("model"),
+                "usage": response.get("usage"),
             }
         else:
             # 使用 Qwen API (默认)

@@ -226,8 +226,11 @@ def main():
         print("4. 自定义本地模型名称")
         print("5. Qwen云端API (需要DASHSCOPE_API_KEY)")
         print("6. Gemini 3 Flash (需要GEMINI_API_KEY)")
+        print("7. GPT-5-mini (需要OPENAI_API_KEY)")
+        print("8. DeepSeek Chat (需要DEEPSEEK_API_KEY)")
+        print("9. DeepSeek Reasoner (需要DEEPSEEK_API_KEY)")
         
-        choice = input("选择 (1-6): ").strip()
+        choice = input("选择 (1-9): ").strip()
         
         # 获取轨迹
         player1_trajectory = result.get_trajectory_string(1)
@@ -266,6 +269,56 @@ def main():
                 draws=result.draws,
                 num_rounds=num_rounds,
                 api_type="gemini"
+            )
+        elif choice == "7":
+            # OpenAI GPT-5-mini API
+            print("\n使用GPT-5-mini API...")
+            from analysis.llm import analyze_game_trajectory
+            
+            analysis_result = analyze_game_trajectory(
+                player1_id=player1_id,
+                player2_id=player2_id,
+                player1_trajectory=player1_trajectory,
+                player2_trajectory=player2_trajectory,
+                player1_wins=result.player1_wins,
+                player2_wins=result.player2_wins,
+                draws=result.draws,
+                num_rounds=num_rounds,
+                api_type="openai"
+            )
+        elif choice == "8":
+            # DeepSeek Chat API
+            print("\n使用DeepSeek Chat API...")
+            from analysis.llm import analyze_game_trajectory
+            
+            analysis_result = analyze_game_trajectory(
+                player1_id=player1_id,
+                player2_id=player2_id,
+                player1_trajectory=player1_trajectory,
+                player2_trajectory=player2_trajectory,
+                player1_wins=result.player1_wins,
+                player2_wins=result.player2_wins,
+                draws=result.draws,
+                num_rounds=num_rounds,
+                api_type="deepseek",
+                model_name="deepseek-chat"
+            )
+        elif choice == "9":
+            # DeepSeek Reasoner API
+            print("\n使用DeepSeek Reasoner API...")
+            from analysis.llm import analyze_game_trajectory
+            
+            analysis_result = analyze_game_trajectory(
+                player1_id=player1_id,
+                player2_id=player2_id,
+                player1_trajectory=player1_trajectory,
+                player2_trajectory=player2_trajectory,
+                player1_wins=result.player1_wins,
+                player2_wins=result.player2_wins,
+                draws=result.draws,
+                num_rounds=num_rounds,
+                api_type="deepseek",
+                model_name="deepseek-reasoner"
             )
         else:
             # 本地模型
