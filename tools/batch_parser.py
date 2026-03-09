@@ -60,7 +60,7 @@ def find_analysis_files(batch_results_dir: str):
 
 
 def parse_batch_files(batch_results_dir: str, output_dir: str = None, 
-                     include_full_text: bool = False):
+                     include_full_text: bool = False, specific_model: str = None):
     """
     批量解析所有分析文件
     
@@ -68,6 +68,7 @@ def parse_batch_files(batch_results_dir: str, output_dir: str = None,
         batch_results_dir: batch_results目录路径
         output_dir: 输出目录（默认为batch_results下的parsed_output）
         include_full_text: 是否包含完整原始文本
+        specific_model: 只处理特定模型（模型名称）
     
     Returns:
         解析统计信息
@@ -79,9 +80,20 @@ def parse_batch_files(batch_results_dir: str, output_dir: str = None,
         print("未找到任何分析文件")
         return None
     
+    # 如果指定了特定模型，只保留该模型
+    if specific_model:
+        if specific_model in files_by_model:
+            files_by_model = {specific_model: files_by_model[specific_model]}
+        else:
+            print(f"错误: 未找到模型 '{specific_model}'")
+            print(f"可用的模型: {', '.join(files_by_model.keys())}")
+            return None
+    
     # 确定输出目录
     if output_dir is None:
-        output_dir = os.path.join(batch_results_dir, 'parsed_output')
+        # 將 parsed_output 放在 batch_results 外面（同級目錄）
+        batch_parent = os.path.dirname(batch_results_dir)
+        output_dir = os.path.join(batch_parent, 'parsed_output')
     
     stats = {
         'total_files': 0,
@@ -228,20 +240,11 @@ def main():
     print(f"{'='*80}")
     print(f"输入目录: {args.input}")
     
-    # 如果指定了特定模型，只处理该模型
     if args.model:
         print(f"只处理模型: {args.model}")
-        batch_results_dir = os.path.join(args.input, args.model)
-        if args.output:
-            output_dir = os.path.join(args.output, args.model)
-        else:
-            output_dir = os.path.join(args.input, 'parsed_output', args.model)
-    else:
-        batch_results_dir = args.input
-        output_dir = args.output
     
     # 执行批量解析
-    stats = parse_batch_files(batch_results_dir, output_dir, args.full_text)
+    stats = parse_batch_files(args.input, args.output, args.full_text, args.model)
     
     if stats:
         # 打印统计信息
@@ -251,7 +254,10 @@ def main():
         print(f"总文件数: {stats['total_files']}")
         print(f"成功: {stats['successful']}")
         print(f"失败: {stats['failed']}")
-        print(f"成功率: {stats['successful']/stats['total_files']*100:.1f}%")
+        if stats['total_files'] > 0:
+            print(f"成功率: {stats['successful']/stats['total_files']*100:.1f}%")
+        else:
+            print(f"成功率: N/A (未找到任何文件)")
         
         print(f"\n按模型统计:")
         for model_name, model_stats in stats['by_model'].items():

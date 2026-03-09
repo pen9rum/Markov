@@ -39,10 +39,11 @@ def generate_valid_combinations():
             if p1 != p2:  # 排除自己对战自己
                 non_markov_combos.append((p1, p2))
     
-    # 类型2: 有一个是Markov
+    # 类型2: 有一个是Markov（非Markov方排除A, B, C）
     one_markov_combos = []
+    non_markov_excluding_abc = NON_MARKOV_PLAYERS - {'A', 'B', 'C'}
     for markov in MARKOV_PLAYERS:
-        for non_markov in NON_MARKOV_PLAYERS:
+        for non_markov in non_markov_excluding_abc:
             one_markov_combos.append((markov, non_markov))
             one_markov_combos.append((non_markov, markov))
     
@@ -175,7 +176,7 @@ def run_single_experiment(player1_id: str, player2_id: str, num_rounds: int,
     return experiment_data
 
 
-def save_single_analysis(exp_data: dict, model_name: str, combo_type: int):
+def save_single_analysis(exp_data: dict, model_name: str, combo_type: int, num_rounds: int):
     """
     保存单个实验的分析结果为文本文件（模仿main.py的格式）
     
@@ -183,11 +184,12 @@ def save_single_analysis(exp_data: dict, model_name: str, combo_type: int):
         exp_data: 单个实验数据
         model_name: 模型名称
         combo_type: 组合类型 (1=非Markov, 2=含Markov)
+        num_rounds: 游戏回合数
     
     Returns:
         保存的文件路径
     """
-    # 构建目录结构: batch_results/模型名称/type1_non_markov 或 type2_with_markov/
+    # 构建目录结构: batch_results/模型名称/回合数/type1_non_markov 或 type2_with_markov/
     clean_model_name = model_name.replace('/', '_').replace('\\', '_')
     
     if combo_type == 1:
@@ -195,7 +197,7 @@ def save_single_analysis(exp_data: dict, model_name: str, combo_type: int):
     else:
         type_folder = "type2_with_markov"
     
-    output_dir = os.path.join(BATCH_OUTPUT_DIR, clean_model_name, type_folder)
+    output_dir = os.path.join(BATCH_OUTPUT_DIR, clean_model_name, str(num_rounds), type_folder)
     
     # 确保输出目录存在
     if not os.path.exists(output_dir):
@@ -369,6 +371,9 @@ def main():
   
   # 使用Qwen雲端API
   python tools/batch_experiment.py --type1 5 --type2 5 --model qwen-api
+  
+  # 運行所有可能組合（類型1: 240組，類型2: 78組，共318組）
+  python tools/batch_experiment.py --all --rounds 100 --model gpt-5-mini
         """
     )
     
@@ -376,6 +381,8 @@ def main():
                        help='類型1組數（都是非Markov玩家 A-P vs A-P）')
     parser.add_argument('--type2', type=int, default=0,
                        help='類型2組數（有一個Markov玩家 X-Z vs A-P）')
+    parser.add_argument('--all', action='store_true',
+                       help='運行所有可能組合（類型1: 240組，類型2: 78組）')
     parser.add_argument('--rounds', type=int, default=100,
                        help='每組遊戲回合數（默認: 100）')
     parser.add_argument('--model', type=str, default='gpt-5-mini',
@@ -387,8 +394,8 @@ def main():
     args = parser.parse_args()
     
     # 檢查至少要有一種類型的實驗
-    if args.type1 == 0 and args.type2 == 0:
-        parser.error("至少需要指定 --type1 或 --type2 其中一個（組數 > 0）")
+    if not args.all and args.type1 == 0 and args.type2 == 0:
+        parser.error("至少需要指定 --type1 或 --type2 其中一個（組數 > 0），或使用 --all 運行所有組合")
     
     # 確定模型名稱
     if args.custom_model:
@@ -410,33 +417,55 @@ def main():
     print("\n" + "="*80)
     print("批量實驗系統")
     print("="*80)
-    print(f"\n實驗配置:")
-    print(f"  類型1（非Markov）: {args.type1} 組")
-    print(f"  類型2（含Markov）: {args.type2} 組")
-    print(f"  每組回合數: {args.rounds}")
-    print(f"  LLM模型: {model_name}")
     
     # 收集所有實驗
     all_experiments = []
     all_combinations = []
     
-    # 類型1: 非Markov
-    if args.type1 > 0:
-        print(f"\n正在抽取類型1組合...")
-        type1_combos = select_combinations(1, args.type1)
-        print(f"選中 {len(type1_combos)} 組類型1組合:")
-        for i, (p1, p2) in enumerate(type1_combos, 1):
-            print(f"  {i}. {p1} vs {p2}")
-        all_combinations.extend([(1, p1, p2) for p1, p2 in type1_combos])
-    
-    # 類型2: 含Markov
-    if args.type2 > 0:
-        print(f"\n正在抽取類型2組合...")
-        type2_combos = select_combinations(2, args.type2)
-        print(f"選中 {len(type2_combos)} 組類型2組合:")
-        for i, (p1, p2) in enumerate(type2_combos, 1):
-            print(f"  {i}. {p1} vs {p2}")
-        all_combinations.extend([(2, p1, p2) for p1, p2 in type2_combos])
+    # 如果使用 --all 模式
+    if args.all:
+        print(f"\n實驗配置:")
+        print(f"  模式: 完整實驗（所有組合）")
+        print(f"  每組回合數: {args.rounds}")
+        print(f"  LLM模型: {model_name}")
+        
+        # 生成所有組合
+        type1_pool, type2_pool = generate_valid_combinations()
+        
+        print(f"\n組合統計:")
+        print(f"  類型1（非Markov vs 非Markov）: {len(type1_pool)} 組")
+        print(f"  類型2（非Markov vs Markov）: {len(type2_pool)} 組")
+        print(f"  總計: {len(type1_pool) + len(type2_pool)} 組")
+        
+        # 使用所有組合
+        all_combinations.extend([(1, p1, p2) for p1, p2 in type1_pool])
+        all_combinations.extend([(2, p1, p2) for p1, p2 in type2_pool])
+        
+    else:
+        # 原有的隨機抽樣模式
+        print(f"\n實驗配置:")
+        print(f"  類型1（非Markov）: {args.type1} 組")
+        print(f"  類型2（含Markov）: {args.type2} 組")
+        print(f"  每組回合數: {args.rounds}")
+        print(f"  LLM模型: {model_name}")
+        
+        # 類型1: 非Markov
+        if args.type1 > 0:
+            print(f"\n正在抽取類型1組合...")
+            type1_combos = select_combinations(1, args.type1)
+            print(f"選中 {len(type1_combos)} 組類型1組合:")
+            for i, (p1, p2) in enumerate(type1_combos, 1):
+                print(f"  {i}. {p1} vs {p2}")
+            all_combinations.extend([(1, p1, p2) for p1, p2 in type1_combos])
+        
+        # 類型2: 含Markov
+        if args.type2 > 0:
+            print(f"\n正在抽取類型2組合...")
+            type2_combos = select_combinations(2, args.type2)
+            print(f"選中 {len(type2_combos)} 組類型2組合:")
+            for i, (p1, p2) in enumerate(type2_combos, 1):
+                print(f"  {i}. {p1} vs {p2}")
+            all_combinations.extend([(2, p1, p2) for p1, p2 in type2_combos])
     
     # 運行實驗
     total = len(all_combinations)
@@ -494,11 +523,11 @@ def main():
     type2_files = []
     
     for exp in type1_experiments:
-        filepath = save_single_analysis(exp, model_name, combo_type=1)
+        filepath = save_single_analysis(exp, model_name, combo_type=1, num_rounds=args.rounds)
         type1_files.append(filepath)
     
     for exp in type2_experiments:
-        filepath = save_single_analysis(exp, model_name, combo_type=2)
+        filepath = save_single_analysis(exp, model_name, combo_type=2, num_rounds=args.rounds)
         type2_files.append(filepath)
     
     # 統計結果
