@@ -44,6 +44,7 @@ src/experiment_results/
 # Batch Experiment Results
 batch_results/
 parsed_output/
+*.csv
 
 # API Keys & Environment Variables
 .env

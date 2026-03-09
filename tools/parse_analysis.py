@@ -7,57 +7,27 @@ from typing import Dict, Any, Optional
 
 def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
     """
-    从LLM输出中解析最终答案部分
+    从 LLM 输出中解析最终答案部分
 
-    支持格式:
-    1. 概率格式: Player1: G, 0.5, 0.3, 0.2
-    2. 次數格式: Player1: G, Rock 0, Paper 50, Scissors 50
-    3. 混合格式: Player1: G, 0, 50, 50
-    4. count格式: Player1: G, Rock count 0, Paper count 50, Scissors count 50
-    5. 等号格式: Player1: G, Rock count = 0, Paper count = 50, Scissors count = 50
-    6. 百分比分布格式:
+    支持的常见格式包括：
+    1. Player1: G, 0.5, 0.3, 0.2
+    2. Player1: G, Rock 0, Paper 50, Scissors 50
+    3. Player1: G, Rock count 0, Paper count 50, Scissors count 50
+    4. Player1: G, Rock count = 0, Paper count = 50, Scissors count = 50
+    5. Player1: Identity G, Rock count 0, Paper count 50, Scissors count 50
+    6. Player1: G (desc), Rock count 0, Paper count 50, Scissors count 50
+    7. - Player1: Identity I — Rock count ≈ 125, Paper count ≈ 250, Scissors count ≈ 125
+    8. 多行格式：
+       Player1: J (desc)
+       - Rock count: 80
+       - Paper count: 70
+       - Scissors count: 350
+    9. 百分比分布格式：
        Player1: P (...), empirical distribution 15% Rock / 27% Paper / 58% Scissors
-    7. Identity格式:
-       Player1: Identity D, Rock count 33, Paper count 33, Scissors count 34
-
-    解析策略:
-    1. 优先找 "Identities and counts:"
-    2. 再找 "Counts ..."
-    3. 再找 "Identities:"
-    4. 再找 "Final Answer:"
-    5. 如果都失败，就直接从全文抓最后出现的 Player1 / Player2 行
     """
 
     def try_parse_players(block_text: str) -> Dict[str, Any]:
         players_data = {}
-
-        player_pattern_labeled = (
-            r'Player\s*([12])\s*:\s*'
-            r'(?:Identity\s+)?'
-            r'([A-Z])'
-            r'(?:\s*\([^)]*\))?'
-            r'(?:\s*[.,:-])?\s*'
-            r'Rock\s*(?:count\s*)?(?:=\s*)?([\d.]+),?\s*'
-            r'Paper\s*(?:count\s*)?(?:=\s*)?([\d.]+),?\s*'
-            r'Scissors\s*(?:count\s*)?(?:=\s*)?([\d.]+)'
-        )
-
-        player_pattern_simple = (
-            r'Player\s*([12])\s*:\s*'
-            r'(?:Identity\s+)?'
-            r'([A-Z])'
-            r'(?:\s*\([^)]*\))?'
-            r'(?:\s*[.,:-])?\s*'
-            r'([\d.]+),?\s*([\d.]+),?\s*([\d.]+)'
-        )
-
-        player_pattern_percent = (
-            r'Player\s*([12])\s*:\s*'
-            r'(?:Identity\s+)?'
-            r'([A-Z])'
-            r'(?:\s*\([^)]*\))?'
-            r'.*?([\d.]+)%\s*Rock\s*/\s*([\d.]+)%\s*Paper\s*/\s*([\d.]+)%\s*Scissors'
-        )
 
         valid_identities = set("ABCDEFGHIJKLMNOPXYZ")
 
@@ -80,9 +50,9 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
             total = rock_val + paper_val + scissors_val
 
             if total > 3:
-                rock_prob = rock_val / total if total > 0 else 0
-                paper_prob = paper_val / total if total > 0 else 0
-                scissors_prob = scissors_val / total if total > 0 else 0
+                rock_prob = rock_val / total if total > 0 else 0.0
+                paper_prob = paper_val / total if total > 0 else 0.0
+                scissors_prob = scissors_val / total if total > 0 else 0.0
 
                 counts = {
                     "rock": int(round(rock_val)),
@@ -110,6 +80,73 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
                 }
             }
 
+        # 1. 單行 labeled 格式
+        # 支援：
+        # Player1: A, Rock count 0, Paper count 0, Scissors count 100
+        # Player1: Identity A, Rock count = 0, Paper count = 0, Scissors count = 100
+        # - Player1: Identity I — Rock count ≈ 125, Paper count ≈ 250, Scissors count ≈ 125
+        player_pattern_labeled = (
+            r'[-•]?\s*Player\s*([12])\s*:\s*'
+            r'(?:Identity\s+)?'
+            r'([A-Z])'
+            r'(?:\s*\([^)]*\))?'
+            r'(?:\s*[.,:—\-])?\s*'
+            r'Rock\s*(?:count\s*)?(?:[:=≈]\s*)?([\d.]+)\s*,?\s*'
+            r'Paper\s*(?:count\s*)?(?:[:=≈]\s*)?([\d.]+)\s*,?\s*'
+            r'Scissors\s*(?:count\s*)?(?:[:=≈]\s*)?([\d.]+)'
+        )
+
+        # 2. 單行純數字格式
+        player_pattern_simple = (
+            r'[-•]?\s*Player\s*([12])\s*:\s*'
+            r'(?:Identity\s+)?'
+            r'([A-Z])'
+            r'(?:\s*\([^)]*\))?'
+            r'(?:\s*[.,:—\-])?\s*'
+            r'([\d.]+)\s*,?\s*([\d.]+)\s*,?\s*([\d.]+)'
+        )
+
+        # 3. 百分比分布格式
+        # 支援：
+        # Player1: P (...), empirical distribution 15% Rock / 27% Paper / 58% Scissors
+        # Player2: Z (...), empirical marginal distribution ... 16% Rock / 27% Paper / 57% Scissors
+        player_pattern_percent = (
+            r'[-•]?\s*Player\s*([12])\s*:\s*'
+            r'(?:Identity\s+)?'
+            r'([A-Z])'
+            r'(?:\s*\([^)]*\))?'
+            r'.*?([\d.]+)%\s*Rock\s*/\s*([\d.]+)%\s*Paper\s*/\s*([\d.]+)%\s*Scissors'
+        )
+
+        # 4. 多行 counts 格式
+        # 支援：
+        # Player1: J (desc)
+        # - Rock count: 80
+        # - Paper count: 70
+        # - Scissors count: 350
+        player_pattern_multiline = (
+            r'[-•]?\s*Player\s*([12])\s*:\s*'
+            r'(?:Identity\s+)?([A-Z])'
+            r'(?:\s*\([^)]*\))?'
+            r'.*?\n'
+            r'\s*[-•]?\s*Rock\s*count\s*[:=≈]?\s*([\d.]+)\s*\n'
+            r'\s*[-•]?\s*Paper\s*count\s*[:=≈]?\s*([\d.]+)\s*\n'
+            r'\s*[-•]?\s*Scissors\s*count\s*[:=≈]?\s*([\d.]+)'
+        )
+
+        # 5. 多行 probabilities 格式，如果 counts 沒寫清楚也能抓
+        # 支援：
+        # Player1: J (...)
+        # - Predicted next-move probabilities ≈ Rock 16%, Paper 14%, Scissors 70%
+        player_pattern_prob_multiline = (
+            r'[-•]?\s*Player\s*([12])\s*:\s*'
+            r'(?:Identity\s+)?([A-Z])'
+            r'(?:\s*\([^)]*\))?'
+            r'.*?Predicted\s+next-move\s+probabilities.*?'
+            r'Rock\s*([\d.]+)%\s*,?\s*Paper\s*([\d.]+)%\s*,?\s*Scissors\s*([\d.]+)%'
+        )
+
+        # 先抓 labeled
         for match in re.finditer(player_pattern_labeled, block_text, re.IGNORECASE):
             player_num = match.group(1)
             identity = match.group(2).upper()
@@ -124,6 +161,7 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
                 identity, rock_val, paper_val, scissors_val
             )
 
+        # 再抓 simple
         if len(players_data) < 2:
             for match in re.finditer(player_pattern_simple, block_text, re.IGNORECASE):
                 player_num = match.group(1)
@@ -141,6 +179,25 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
                         identity, rock_val, paper_val, scissors_val
                     )
 
+        # 再抓 multiline counts
+        if len(players_data) < 2:
+            for match in re.finditer(player_pattern_multiline, block_text, re.IGNORECASE | re.DOTALL):
+                player_num = match.group(1)
+                identity = match.group(2).upper()
+                rock_val = float(match.group(3))
+                paper_val = float(match.group(4))
+                scissors_val = float(match.group(5))
+
+                if identity not in valid_identities:
+                    continue
+
+                key = f"player{player_num}"
+                if key not in players_data:
+                    players_data[key] = build_player_data(
+                        identity, rock_val, paper_val, scissors_val
+                    )
+
+        # 再抓百分比分布
         if len(players_data) < 2:
             for match in re.finditer(player_pattern_percent, block_text, re.IGNORECASE | re.DOTALL):
                 player_num = match.group(1)
@@ -158,10 +215,30 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
                         identity, rock_pct, paper_pct, scissors_pct, is_percent=True
                     )
 
+        # 最後抓 multiline probability
+        # 若沒有 counts，但至少有 next-move probabilities，可先塞 probabilities，counts 用 100 回合近似
+        if len(players_data) < 2:
+            for match in re.finditer(player_pattern_prob_multiline, block_text, re.IGNORECASE | re.DOTALL):
+                player_num = match.group(1)
+                identity = match.group(2).upper()
+                rock_pct = float(match.group(3))
+                paper_pct = float(match.group(4))
+                scissors_pct = float(match.group(5))
+
+                if identity not in valid_identities:
+                    continue
+
+                key = f"player{player_num}"
+                if key not in players_data:
+                    players_data[key] = build_player_data(
+                        identity, rock_pct, paper_pct, scissors_pct, is_percent=True
+                    )
+
         return players_data
 
+    # 1. 优先找 "Identities and counts..."
     identities_counts_match = re.search(
-        r'Identities and counts:\s*\n(.*?)(?:\n\s*\n|={3,}|\Z)',
+        r'Identities and counts.*?:\s*\n(.*?)(?:\n\s*\n|={3,}|\Z)',
         text,
         re.DOTALL | re.IGNORECASE
     )
@@ -171,6 +248,7 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
         if len(players_data) == 2:
             return players_data
 
+    # 2. 找 "Counts ..."
     counts_match = re.search(
         r'Counts.*?:\s*\n(.*?)(?:\n\s*\n|Justification summary:|Identities:|Brief justification:|Predicted|={3,}|\Z)',
         text,
@@ -182,6 +260,7 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
         if len(players_data) == 2:
             return players_data
 
+    # 3. 找 "Identities:"
     identities_match = re.search(
         r'Identities:\s*\n(.*?)(?:\n\s*\n|Predicted move probabilities|Predicted next-move probabilities|={3,}|\Z)',
         text,
@@ -193,6 +272,7 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
         if len(players_data) == 2:
             return players_data
 
+    # 4. 找 Final Answer
     final_answer_match = re.search(
         r'(?:\*\*Final Answer\*\*:|\*\*Final Answer:\*\*|Final Answer:)\s*\n(.*?)(?:={3,}|\Z)',
         text,
@@ -204,33 +284,18 @@ def parse_final_answer(text: str) -> Optional[Dict[str, Any]]:
         if len(players_data) == 2:
             return players_data
 
-    player_line_pattern = r'Player\s*([12])\s*:\s*.*'
-    all_player_lines = list(re.finditer(player_line_pattern, text, re.IGNORECASE))
-
-    if all_player_lines:
-        last_p1 = None
-        last_p2 = None
-
-        for m in reversed(all_player_lines):
-            line = m.group(0).strip()
-            num_match = re.search(r'Player\s*([12])\s*:', line, re.IGNORECASE)
-            if not num_match:
-                continue
-
-            player_num = num_match.group(1)
-            if player_num == "1" and last_p1 is None:
-                last_p1 = line
-            elif player_num == "2" and last_p2 is None:
-                last_p2 = line
-
-            if last_p1 and last_p2:
-                break
-
-        if last_p1 and last_p2:
-            fallback_block = f"{last_p1}\n{last_p2}"
-            players_data = try_parse_players(fallback_block)
-            if len(players_data) == 2:
-                return players_data
+    # 5. fallback: 从全文抓最后出现的 Player1 / Player2 相关片段
+    # 抓比较宽的文本，再交给 try_parse_players
+    fallback_match = re.search(
+        r'(Player\s*1:.*?Player\s*2:.*?)(?:={3,}|\Z)',
+        text,
+        re.DOTALL | re.IGNORECASE
+    )
+    if fallback_match:
+        block = fallback_match.group(1).strip()
+        players_data = try_parse_players(block)
+        if len(players_data) == 2:
+            return players_data
 
     print("错误: 无法解析 Player1 / Player2 的最终答案")
     return None
@@ -295,9 +360,6 @@ def detect_markov_player(text: str) -> Optional[str]:
 def parse_ground_truth(text: str) -> Optional[Dict[str, Any]]:
     """
     從分析文件中解析真實的玩家身份和實際分布
-
-    Returns:
-        包含真實數據的字典，如果解析失败則返回None
     """
     ground_truth = {}
 
@@ -358,13 +420,6 @@ def parse_ground_truth(text: str) -> Optional[Dict[str, Any]]:
 def parse_analysis_result(analysis_text: str, include_full_text: bool = False) -> Dict[str, Any]:
     """
     完整解析分析结果
-
-    Args:
-        analysis_text: LLM的完整输出文本
-        include_full_text: 是否在JSON中包含完整的原始文本
-
-    Returns:
-        包含所有解析信息的JSON结构
     """
     result = {
         "parse_success": False,
