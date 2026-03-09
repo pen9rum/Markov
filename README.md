@@ -1,12 +1,13 @@
 # 剪刀石头布模拟系统
 
-一个支持多种策略的剪刀石头布（Rock-Paper-Scissors）游戏模拟系统，集成LLM分析功能。
+一个支持多种策略的剪刀石头布（Rock-Paper-Scissors）游戏模拟系统，集成LLM分析功能和完整的实验工具链。
 
 ## 📋 目录
 
 - [功能特点](#-功能特点)
 - [快速开始](#-快速开始)
 - [玩家策略](#-玩家策略)
+- [工具链与 Pipeline](#-工具链与-pipeline)
 - [使用方法](#-使用方法)
 - [LLM分析](#-llm分析)
 - [批量实验工具](#-批量实验工具)
@@ -27,6 +28,7 @@
 - **详细统计分析** - 显示胜负平局的次数统计
 - **LLM智能分析** - 使用大语言模型分析游戏策略和行为模式
 - **批量实验工具** - 自动化批量实验和分析结果解析
+- **完整工具链** - 从实验执行到结果评估的端到端自动化流程
 
 ---
 
@@ -59,30 +61,209 @@ pip install -r requirements.txt
 
 ### 2. 配置API密钥（可选 - 仅LLM云端分析需要）
 
+创建 `.env` 文件（會自動載入）：
+```bash
+# Qwen API
+DASHSCOPE_API_KEY=your_qwen_api_key
+
+# Gemini API
+GEMINI_API_KEY=your_gemini_api_key
+
+# OpenAI API (GPT-5-mini)
+OPENAI_API_KEY=your_openai_api_key
+
+# DeepSeek API
+DEEPSEEK_API_KEY=your_deepseek_api_key
+```
+
+或使用環境變量：
 ```bash
 # Windows PowerShell
 $env:DASHSCOPE_API_KEY="your_api_key_here"
+$env:GEMINI_API_KEY="your_gemini_key"
 
 # Linux/Mac
 export DASHSCOPE_API_KEY=your_api_key_here
+export GEMINI_API_KEY=your_gemini_key
 ```
 
-获取API密钥：[阿里云百炼平台](https://dashscope.console.aliyun.com/)
+獲取API密鑰：
+- Qwen: [阿里云百炼平台](https://dashscope.console.aliyun.com/)
+- Gemini: [Google AI Studio](https://aistudio.google.com/apikey)
+- OpenAI: [OpenAI Platform](https://platform.openai.com/)
+- DeepSeek: [DeepSeek Platform](https://platform.deepseek.com/)
 
 ### 3. 运行程序
 
 **基础游戏模拟**
 ```bash
-cd src
-python main.py
+python src/main.py
 ```
 
-**测试API连接**
+**批量实验（推荐）**
 ```bash
-python test_api.py
+# 運行 10 組實驗，每組 100 回合，使用 GPT-5-mini
+python tools/batch_experiment.py --type1 10 --type2 10 --rounds 100 --model gpt-5-mini
+
+# 運行所有可能組合（type1: 240組, type2: 78組）
+python tools/batch_experiment.py --all --rounds 100 --model deepseek-chat
 ```
 
 详细设置说明：[SETUP.md](SETUP.md) | [LOCAL_SETUP.md](LOCAL_SETUP.md)
+
+---
+
+## 🔧 工具链与 Pipeline
+
+### 完整實驗流程
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    實驗執行階段                              │
+├─────────────────────────────────────────────────────────────┤
+│ 1️⃣ batch_experiment.py                                      │
+│    └─ 批量執行實驗，生成 LLM 分析文本                       │
+│       輸出: batch_results/{model}/{rounds}/type1|type2/*.txt │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    解析階段                                  │
+├─────────────────────────────────────────────────────────────┤
+│ 2️⃣ batch_parser.py                                          │
+│    └─ 解析 LLM 輸出為結構化 JSON                            │
+│       輸出: parsed_output/{model}/{rounds}/type1|type2/*.json│
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    評估階段                                  │
+├─────────────────────────────────────────────────────────────┤
+│ 3️⃣ evaluate_metrics.py                                      │
+│    └─ 計算準確率、TV距離、勝率差距等指標                    │
+│       輸出: evaluation_summary.json, evaluation_detail.json  │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    匯出階段                                  │
+├─────────────────────────────────────────────────────────────┤
+│ 4️⃣ export_metrics_csv.py                                    │
+│    └─ 匯出多模型、多 rounds 結果為 CSV                      │
+│       輸出: metrics_export.csv                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 工具詳細說明
+
+#### 1. 實驗工具
+
+| 工具 | 說明 | 用途 |
+|------|------|------|
+| **`src/main.py`** | 單次實驗執行器 | 互動式執行單場遊戲，支援 9 種 LLM 模型 |
+| **`tools/batch_experiment.py`** | 批量實驗執行器 | 自動執行大量實驗組合，支援隨機抽樣或全組合 |
+
+**批量實驗使用範例：**
+```bash
+# 隨機抽樣模式
+python tools/batch_experiment.py --type1 10 --type2 5 --rounds 100 --model gpt-5-mini
+
+# 全組合模式（240+78=318組）
+python tools/batch_experiment.py --all --rounds 200 --model deepseek-chat
+
+# 支援的模型
+--model qwen-1.5b | qwen-3b | qwen-7b | qwen-api | gemini | 
+        gpt-5-mini | deepseek-chat | deepseek-reasoner
+```
+
+**組合統計：**
+- **Type1（非Markov vs 非Markov）**: 240 組
+  - A-P (16個玩家) vs A-P（排除自己對戰）= 16 × 15 = 240
+- **Type2（非Markov vs Markov）**: 78 組
+  - (D-P，排除A,B,C) vs (X,Y,Z)，雙向 = 13 × 3 × 2 = 78
+- **總計**: 318 組
+
+#### 2. 解析工具
+
+| 工具 | 說明 | 用途 |
+|------|------|------|
+| **`tools/batch_parser.py`** | 批量解析器 | 將 LLM 文本輸出解析為結構化 JSON |
+| **`tools/parse_analysis.py`** | 單文件解析器 | 解析單個分析文件（被 batch_parser 調用）|
+
+**批量解析使用範例：**
+```bash
+# 解析特定模型的特定 rounds
+python tools/batch_parser.py --model deepseek-chat --rounds 200
+
+# 解析特定模型的所有 rounds
+python tools/batch_parser.py --model gpt-5-mini
+
+# 解析所有模型的所有 rounds
+python tools/batch_parser.py
+```
+
+#### 3. 評估工具
+
+| 工具 | 說明 | 用途 |
+|------|------|------|
+| **`tools/evaluate_metrics.py`** | 指標評估器 | 計算 ACC、MDA、TV、WR_gap 等指標 |
+| **`tools/export_metrics_csv.py`** | CSV 匯出器 | 匯出多模型多 rounds 的結果為 CSV |
+
+**評估使用範例：**
+```bash
+# 評估單個模型的單個 rounds
+python tools/evaluate_metrics.py --folder "parsed_output/gpt-5-mini/200"
+
+# 批量匯出多個模型多個 rounds
+python tools/export_metrics_csv.py --models gpt-5-mini deepseek-chat --rounds 100 200 500 1000 --output results.csv
+```
+
+**評估指標說明：**
+- **ACC (Accuracy)**: 玩家身份識別準確率（兩個玩家都對才算對）
+- **MDA (Markov Detection Accuracy)**: Markov 玩家檢測準確率
+- **TV (Total Variation)**: 預測分布與真實分布的 TV 距離（越小越好）
+- **WR_gap (Win Rate Gap)**: 預測勝率與真實勝率的差距（越小越好）
+
+#### 4. 驗證工具
+
+| 工具 | 說明 | 用途 |
+|------|------|------|
+| **`test/verify_distribution.py`** | 分布驗證器 | 驗證玩家策略的統計分布是否正確 |
+
+### 目錄結構
+
+```
+Markov/
+├── src/                        # 核心源碼
+│   ├── main.py                 # 主程序入口
+│   ├── core/                   # 遊戲核心邏輯
+│   │   ├── game.py             # 遊戲模擬引擎
+│   │   └── players.py          # 玩家策略定義
+│   └── analysis/               # LLM 分析模組
+│       ├── llm.py              # 雲端 API (Qwen/Gemini/OpenAI/DeepSeek)
+│       └── llm_local.py        # 本地模型
+│
+├── tools/                      # 工具集
+│   ├── batch_experiment.py     # 批量實驗執行器
+│   ├── batch_parser.py         # 批量解析器
+│   ├── parse_analysis.py       # 解析邏輯
+│   ├── evaluate_metrics.py     # 指標評估器
+│   └── export_metrics_csv.py   # CSV 匯出器
+│
+├── batch_results/              # 實驗結果（被 gitignore）
+│   └── {model}/
+│       └── {rounds}/
+│           ├── type1_non_markov/
+│           └── type2_with_markov/
+│
+├── parsed_output/              # 解析結果（被 gitignore）
+│   └── {model}/
+│       └── {rounds}/
+│           ├── type1_non_markov/
+│           ├── type2_with_markov/
+│           ├── evaluation_summary.json
+│           └── evaluation_detail.json
+│
+└── test/                       # 測試工具
+    └── verify_distribution.py  # 分布驗證
+```
 
 ---
 
