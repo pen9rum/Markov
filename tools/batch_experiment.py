@@ -50,13 +50,58 @@ def generate_valid_combinations():
     return non_markov_combos, one_markov_combos
 
 
-def select_combinations(combo_type: int, count: int = 10):
+def get_existing_combinations(model_name: str, num_rounds: int, combo_type: int):
     """
-    从指定类型中随机抽取组合
+    获取已经运行过的组合
+    
+    Args:
+        model_name: 模型名称
+        num_rounds: 游戏回合数
+        combo_type: 1=都是非Markov, 2=有一个是Markov
+    
+    Returns:
+        已存在的组合集合 {(player1_id, player2_id), ...}
+    """
+    clean_model_name = model_name.replace('/', '_').replace('\\', '_')
+    
+    if combo_type == 1:
+        type_folder = "type1_non_markov"
+    else:
+        type_folder = "type2_with_markov"
+    
+    output_dir = os.path.join(BATCH_OUTPUT_DIR, clean_model_name, str(num_rounds), type_folder)
+    
+    existing_combos = set()
+    
+    # 检查目录是否存在
+    if not os.path.exists(output_dir):
+        return existing_combos
+    
+    # 扫描所有分析文件
+    for filename in os.listdir(output_dir):
+        if filename.startswith("analysis_") and filename.endswith(".txt"):
+            # 文件名格式: analysis_{p1}_vs_{p2}_{timestamp}.txt
+            parts = filename.replace("analysis_", "").replace(".txt", "").split("_vs_")
+            if len(parts) == 2:
+                player1_id = parts[0]
+                # 移除时间戳部分
+                player2_parts = parts[1].split("_")
+                if len(player2_parts) > 0:
+                    player2_id = player2_parts[0]
+                    existing_combos.add((player1_id, player2_id))
+    
+    return existing_combos
+
+
+def select_combinations(combo_type: int, count: int = 10, model_name: str = None, num_rounds: int = 100):
+    """
+    从指定类型中随机抽取组合，排除已经运行过的组合
     
     Args:
         combo_type: 1=都是非Markov, 2=有一个是Markov
         count: 抽取数量，默认10
+        model_name: 模型名称，用于检查已存在的结果
+        num_rounds: 游戏回合数，用于检查已存在的结果
     
     Returns:
         选中的组合列表
@@ -69,6 +114,19 @@ def select_combinations(combo_type: int, count: int = 10):
     else:
         pool = one_markov_combos
         print(f"\n总共有 {len(pool)} 种单Markov组合")
+    
+    # 获取已存在的组合
+    if model_name:
+        existing = get_existing_combinations(model_name, num_rounds, combo_type)
+        if existing:
+            print(f"已存在 {len(existing)} 组结果，将被排除")
+            # 过滤掉已存在的组合
+            pool = [combo for combo in pool if combo not in existing]
+            print(f"剩余可用组合: {len(pool)} 组")
+    
+    if len(pool) == 0:
+        print(f"警告: 所有组合都已运行过！")
+        return []
     
     if len(pool) < count:
         print(f"警告: 可用组合只有 {len(pool)} 种，少于请求的 {count} 种")
@@ -432,10 +490,22 @@ def main():
         # 生成所有組合
         type1_pool, type2_pool = generate_valid_combinations()
         
+        # 获取已存在的组合并排除
+        type1_existing = get_existing_combinations(model_name, args.rounds, combo_type=1)
+        type2_existing = get_existing_combinations(model_name, args.rounds, combo_type=2)
+        
+        if type1_existing:
+            type1_pool = [combo for combo in type1_pool if combo not in type1_existing]
+            print(f"類型1已存在 {len(type1_existing)} 組結果，已排除")
+        
+        if type2_existing:
+            type2_pool = [combo for combo in type2_pool if combo not in type2_existing]
+            print(f"類型2已存在 {len(type2_existing)} 組結果，已排除")
+        
         print(f"\n組合統計:")
-        print(f"  類型1（非Markov vs 非Markov）: {len(type1_pool)} 組")
-        print(f"  類型2（非Markov vs Markov）: {len(type2_pool)} 組")
-        print(f"  總計: {len(type1_pool) + len(type2_pool)} 組")
+        print(f"  類型1（非Markov vs 非Markov）: {len(type1_pool)} 組 (待運行)")
+        print(f"  類型2（非Markov vs Markov）: {len(type2_pool)} 組 (待運行)")
+        print(f"  總計: {len(type1_pool) + len(type2_pool)} 組 (待運行)")
         
         # 使用所有組合
         all_combinations.extend([(1, p1, p2) for p1, p2 in type1_pool])
@@ -452,7 +522,7 @@ def main():
         # 類型1: 非Markov
         if args.type1 > 0:
             print(f"\n正在抽取類型1組合...")
-            type1_combos = select_combinations(1, args.type1)
+            type1_combos = select_combinations(1, args.type1, model_name, args.rounds)
             print(f"選中 {len(type1_combos)} 組類型1組合:")
             for i, (p1, p2) in enumerate(type1_combos, 1):
                 print(f"  {i}. {p1} vs {p2}")
@@ -461,7 +531,7 @@ def main():
         # 類型2: 含Markov
         if args.type2 > 0:
             print(f"\n正在抽取類型2組合...")
-            type2_combos = select_combinations(2, args.type2)
+            type2_combos = select_combinations(2, args.type2, model_name, args.rounds)
             print(f"選中 {len(type2_combos)} 組類型2組合:")
             for i, (p1, p2) in enumerate(type2_combos, 1):
                 print(f"  {i}. {p1} vs {p2}")
