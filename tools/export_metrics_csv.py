@@ -50,6 +50,10 @@ def collect_metrics(models, rounds, parsed_output_dir="parsed_output"):
                         "mda": overall.get("MDA"),
                         "tv": overall.get("TV"),
                         "wr_gap": overall.get("WR_gap"),
+                        "ce": overall.get("CE"),
+                        "brier": overall.get("Brier"),
+                        "evloss": overall.get("EVLoss"),
+                        "union": overall.get("Union"),
                     })
                 
                 # 添加 non_markov 結果
@@ -65,6 +69,10 @@ def collect_metrics(models, rounds, parsed_output_dir="parsed_output"):
                         "mda": non_markov.get("MDA"),
                         "tv": non_markov.get("TV"),
                         "wr_gap": non_markov.get("WR_gap"),
+                        "ce": non_markov.get("CE"),
+                        "brier": non_markov.get("Brier"),
+                        "evloss": non_markov.get("EVLoss"),
+                        "union": non_markov.get("Union"),
                     })
                 
                 # 添加 with_markov 結果
@@ -80,6 +88,10 @@ def collect_metrics(models, rounds, parsed_output_dir="parsed_output"):
                         "mda": with_markov.get("MDA"),
                         "tv": with_markov.get("TV"),
                         "wr_gap": with_markov.get("WR_gap"),
+                        "ce": with_markov.get("CE"),
+                        "brier": with_markov.get("Brier"),
+                        "evloss": with_markov.get("EVLoss"),
+                        "union": with_markov.get("Union"),
                     })
                 
                 print(f"✓ 收集完成: {model}/{round_num}")
@@ -113,6 +125,10 @@ def export_to_csv(results, output_file):
         "mda",
         "tv",
         "wr_gap",
+        "ce",
+        "brier",
+        "evloss",
+        "union",
     ]
     
     # 寫入 CSV

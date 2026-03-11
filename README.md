@@ -216,10 +216,20 @@ python tools/export_metrics_csv.py --models gpt-5-mini deepseek-chat --rounds 10
 ```
 
 **評估指標說明：**
+
+**基礎指標：**
 - **ACC (Accuracy)**: 玩家身份識別準確率（兩個玩家都對才算對）
 - **MDA (Markov Detection Accuracy)**: Markov 玩家檢測準確率
 - **TV (Total Variation)**: 預測分布與真實分布的 TV 距離（越小越好）
 - **WR_gap (Win Rate Gap)**: 預測勝率與真實勝率的差距（越小越好）
+
+**進階指標（新增）：**
+- **CE (Cross Entropy)**: 交叉熵，衡量預測分布編碼真實分布的信息損失
+- **Brier Score**: L2距離，同時懲罰排序和校準誤差
+- **EVLoss (Expected Value Loss)**: 期望值損失，關注勝率優勢的差異
+- **Union Loss**: CE、Brier、EVLoss 的歸一化平均值（綜合評估指標）
+
+詳細說明請參閱：[評估指標詳細說明](#-評估指標詳細說明)
 
 #### 4. 驗證工具
 
@@ -643,7 +653,241 @@ Player2: X, 0.0, 1.0, 0.0
 
 ---
 
-## 🔬 技术说明
+## � 評估指標詳細說明
+
+### 基礎指標
+
+#### ACC (Accuracy) - 玩家識別準確率
+- **定義**: 雙方玩家身份都預測正確才算正確
+- **範圍**: [0, 1]
+- **越大越好**
+
+#### MDA (Markov Detection Accuracy) - Markov 檢測準確率
+- **定義**: 正確判斷遊戲中是否包含 Markov 玩家
+- **範圍**: [0, 1]
+- **越大越好**
+
+#### TV (Total Variation) - 分布總變差距離
+- **定義**: `TV(q, p) = 1/2 * Σ|q_i - p_i|`
+- **範圍**: [0, 1]
+- **越小越好**
+
+#### WR_gap (Win Rate Gap) - 勝率差距
+- **定義**: `|WR_真實 - WR_預測|`
+- **範圍**: [0, 1]
+- **越小越好**
+
+### 進階指標
+
+#### 1️⃣ Cross Entropy (CE) - 交叉熵
+
+**定義：**
+```
+CE(p*, p^) = -Σ p*_c * log(p^_c + ε)
+其中 c ∈ {win, draw, loss}
+```
+
+**含義：**
+- 用真實分布 p* 去衡量用模型分布 p^ 編碼時產生的信息驚訝度
+- 如果模型把高概率放在真正會發生的事件上 → CE 會小
+
+**特點：**
+- 不一定等於 0（除非真實分布是 deterministic 且預測完全正確）
+- 取值範圍：[0, ∞)（實際使用時會做歸一化）
+- **越小越好**
+
+#### 2️⃣ Brier Score - 布賴爾分數
+
+**定義：**
+```
+Brier(p*, p^) = Σ (p^_c - p*_c)²
+```
+
+**含義：**
+- 本質是 L2 距離（歐氏距離的平方）
+- 同時懲罰排序錯誤 (ranking error) 和校準錯誤 (calibration error)
+
+**特點：**
+- 取值範圍：[0, 1]
+- 完全相同時 = 0
+- **越小越好**
+
+#### 3️⃣ Expected Value Loss (EVLoss) - 期望值損失
+
+**定義：**
+```
+EV(p) = p_win - p_loss
+EVLoss = (EV(p*) - EV(p^))²
+```
+
+**含義：**
+- 衡量模型對勝率優勢估計錯多少
+- 關注的是結果的期望值差異，而不是分布本身
+
+**特點：**
+- EV(p) ∈ [-1, 1]
+- EVLoss ∈ [0, 4]
+- **越小越好**
+
+#### 4️⃣ Union Loss - 綜合損失
+
+**定義：**
+```
+Union = 1/3 * (CE_norm + Brier_norm + EVLoss_norm)
+```
+
+**歸一化方法：**
+- **CE**: min-max 歸一化 → `(CE - min) / (max - min)`
+- **Brier**: 已在 [0,1]，不需要歸一化
+- **EVLoss**: 除以最大值 4 → `EVLoss / 4`
+
+**特點：**
+- 綜合了三個不同角度的誤差
+- 取值範圍：[0, 1]
+- **越小越好**
+
+### 指標對比總結
+
+| 指標 | 衡量內容 | 範圍 | 方向 |
+|------|---------|------|------|
+| **ACC** | 玩家識別準確率 | [0, 1] | 越大越好 |
+| **MDA** | Markov檢測準確率 | [0, 1] | 越大越好 |
+| **TV** | 分布總變差距離 | [0, 1] | 越小越好 |
+| **WR_gap** | 勝率差距 | [0, 1] | 越小越好 |
+| **CE** | 交叉熵 | [0, ∞) | 越小越好 |
+| **Brier** | 布賴爾分數 | [0, 1] | 越小越好 |
+| **EVLoss** | 期望值損失 | [0, 4] | 越小越好 |
+| **Union** | 綜合損失 | [0, 1] | 越小越好 |
+
+### 推薦使用指南
+
+- **整體性能評估**: Union Loss
+- **分布準確性**: TV 和 Brier
+- **結果準確性**: WR_gap 和 EVLoss
+- **識別能力**: ACC 和 MDA
+
+**注意事項：**
+1. CE、Brier、EVLoss 只對非 Markov 玩家計算（因為 Markov 玩家的分布依賴於對手）
+2. Union Loss 的歸一化是動態的，不同批次的值可能因歸一化範圍不同而不可直接比較
+
+---
+
+## 🔧 詳細設置指南
+
+### 雲端 API 設置（Qwen/Gemini/OpenAI/DeepSeek）
+
+#### 1. 獲取 API 密鑰
+
+**Qwen API（阿里雲百煉）：**
+1. 訪問 [阿里云百炼平台](https://dashscope.console.aliyun.com/)
+2. 登錄/註冊阿里云賬號
+3. 進入「API-KEY管理」頁面
+4. 創建新的 API-KEY 並複製
+
+**Gemini API（Google）：**
+1. 訪問 [Google AI Studio](https://aistudio.google.com/apikey)
+2. 登錄 Google 賬號
+3. 創建 API 密鑰
+
+**OpenAI API：**
+1. 訪問 [OpenAI Platform](https://platform.openai.com/)
+2. 創建帳號並設置付費
+3. 生成 API 密鑰
+
+**DeepSeek API：**
+1. 訪問 [DeepSeek Platform](https://platform.deepseek.com/)
+2. 註冊並獲取 API 密鑰
+
+#### 2. 設置環境變量
+
+**Windows (PowerShell):**
+```powershell
+$env:DASHSCOPE_API_KEY="your_qwen_api_key"
+$env:GEMINI_API_KEY="your_gemini_api_key"
+$env:OPENAI_API_KEY="your_openai_api_key"
+$env:DEEPSEEK_API_KEY="your_deepseek_api_key"
+```
+
+**Windows (CMD):**
+```cmd
+set DASHSCOPE_API_KEY=your_api_key_here
+set GEMINI_API_KEY=your_gemini_api_key
+```
+
+**Linux/Mac:**
+```bash
+export DASHSCOPE_API_KEY=your_api_key_here
+export GEMINI_API_KEY=your_gemini_api_key
+```
+
+**永久設置 (Windows):**
+```powershell
+[System.Environment]::SetEnvironmentVariable('DASHSCOPE_API_KEY', 'your_api_key_here', 'User')
+```
+
+**或使用 .env 文件（推薦）：**
+在項目根目錄創建 `.env` 文件：
+```bash
+DASHSCOPE_API_KEY=your_qwen_api_key
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
+DEEPSEEK_API_KEY=your_deepseek_api_key
+```
+
+### 本地模型設置
+
+#### 優點
+- ✅ 完全免費
+- ✅ 隱私保護
+- ✅ 無需聯網（首次下載後）
+
+#### 系統要求
+
+**CPU 運行（無需顯卡）：**
+| 模型 | 參數量 | 記憶體需求 | 速度 | 推薦場景 |
+|------|--------|----------|------|---------|
+| Qwen2.5-1.5B-Instruct | 1.5B | ~3GB RAM | 很快 | 測試、簡單分析 |
+| Qwen2.5-3B-Instruct | 3B | ~6GB RAM | 快 | 日常使用 |
+
+**GPU 運行（更好體驗）：**
+| 模型 | 參數量 | 顯存需求 | 推薦顯卡 |
+|------|--------|----------|----------|
+| Qwen2.5-7B-Instruct | 7B | ~14GB | RTX 3090/4090 |
+| Qwen2.5-14B-Instruct | 14B | ~28GB | A100/H100 |
+
+#### 安裝步驟
+
+1. **安裝依賴**
+```bash
+pip install transformers torch accelerate
+```
+
+2. **運行程序**
+```bash
+cd src
+python main.py
+```
+
+3. **選擇本地模型**
+- 首次運行會自動下載模型（根據模型大小需要 5-30 分鐘）
+- 下載完成後會緩存，以後無需重新下載
+
+#### 模型選擇建議
+
+```python
+# 快速測試（CPU 可跑）
+model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+
+# 日常使用（CPU 可跑）
+model_name = "Qwen/Qwen2.5-3B-Instruct"
+
+# 最佳效果（需要 GPU）
+model_name = "Qwen/Qwen2.5-7B-Instruct"
+```
+
+---
+
+## �🔬 技术说明
 
 ### 技术栈
 - **语言**: Python 3.6+
@@ -691,6 +935,3 @@ PLAYER_CONFIGS = {
 
 ---
 
-**相關文檔**
-- [雲端API設置指南](SETUP.md)
-- [本地模型設置指南](LOCAL_SETUP.md)

@@ -38,6 +38,18 @@ def mean(values):
     return sum(values) / len(values) if values else None
 
 
+def safe_min(values):
+    """Return min of non-None values, or None if all None"""
+    filtered = [v for v in values if v is not None]
+    return min(filtered) if filtered else None
+
+
+def safe_max(values):
+    """Return max of non-None values, or None if all None"""
+    filtered = [v for v in values if v is not None]
+    return max(filtered) if filtered else None
+
+
 def normalize_counts(counts):
     total = sum(counts)
     if total <= 0:
@@ -53,6 +65,56 @@ def tv_distance(q, p):
     lower is better
     """
     return 0.5 * sum(abs(q[i] - p[i]) for i in range(3))
+
+
+def cross_entropy(p_star, p_hat, epsilon=1e-10):
+    """
+    Cross Entropy
+    CE(p*, p^) = -sum_c p*_c * log(p^_c + epsilon)
+    
+    Args:
+        p_star: ground truth distribution (win, draw, loss)
+        p_hat: predicted distribution (win, draw, loss)
+        epsilon: small constant to avoid log(0)
+    
+    Returns:
+        cross entropy value
+    """
+    import math
+    return -sum(p_star[i] * math.log(p_hat[i] + epsilon) for i in range(3))
+
+
+def brier_score(p_star, p_hat):
+    """
+    Brier Score
+    Brier(p*, p^) = sum_c (p^_c - p*_c)^2
+    
+    Args:
+        p_star: ground truth distribution (win, draw, loss)
+        p_hat: predicted distribution (win, draw, loss)
+    
+    Returns:
+        brier score, range [0, 1]
+    """
+    return sum((p_hat[i] - p_star[i]) ** 2 for i in range(3))
+
+
+def ev_loss(p_star, p_hat):
+    """
+    Expected Value Loss
+    EV(p) = p_win - p_loss
+    EVLoss = (EV(p*) - EV(p^))^2
+    
+    Args:
+        p_star: ground truth distribution (win, draw, loss)
+        p_hat: predicted distribution (win, draw, loss)
+    
+    Returns:
+        ev loss, range [0, 4]
+    """
+    ev_star = p_star[0] - p_star[2]  # win - loss
+    ev_hat = p_hat[0] - p_hat[2]     # win - loss
+    return (ev_star - ev_hat) ** 2
 
 
 def win_rate(p1, p2):
@@ -151,13 +213,60 @@ def summarize(rows):
     mda = [r["MDA"] for r in rows]
     tv = [r["TV"] for r in rows if r["TV"] is not None]
     wr_gap = [r["WR_gap"] for r in rows]
+    # 收集所有样本的 CE, Brier, EVLoss（保留 None）
+    ce_raw = [r["CE"] for r in rows]
+    brier_raw = [r["Brier"] for r in rows]
+    evloss_raw = [r["EVLoss"] for r in rows]
 
+    # 只取非 None 的值用于归一化计算
+    ce_valid = [c for c in ce_raw if c is not None]
+    brier_valid = [b for b in brier_raw if b is not None]
+    evloss_valid = [e for e in evloss_raw if e is not None]
+
+    # Calculate Union Loss with normalization
+    # CE normalization: min-max
+    ce_min = safe_min(ce_valid)
+    ce_max = safe_max(ce_valid)
+    
+    # Brier normalization: already in [0, 1], no change needed
+    
+    # EVLoss max value is 4
+    
+    # Calculate Union Loss for each sample that has all three metrics
+    union_values = []
+    for i in range(len(rows)):
+        ce_val = ce_raw[i]
+        brier_val = brier_raw[i]
+        evloss_val = evloss_raw[i]
+        
+        # Only calculate Union if all three metrics are available
+        if ce_val is not None and brier_val is not None and evloss_val is not None:
+            # Normalize CE
+            if ce_min is not None and ce_max is not None and ce_max > ce_min:
+                ce_norm = (ce_val - ce_min) / (ce_max - ce_min)
+            else:
+                ce_norm = 0.5  # If max == min, set to 0.5
+            
+            # Brier is already normalized
+            brier_norm = brier_val
+            
+            # Normalize EVLoss
+            evloss_norm = evloss_val / 4.0
+            
+            # Calculate Union
+            union = (ce_norm + brier_norm + evloss_norm) / 3.0
+            union_values.append(union)
+    
     return {
         "samples": len(rows),
         "ACC": mean(acc),
         "MDA": mean(mda),
         "TV": mean(tv),
         "WR_gap": mean(wr_gap),
+        "CE": mean(ce_valid),
+        "Brier": mean(brier_valid),
+        "EVLoss": mean(evloss_valid),
+        "Union": mean(union_values) if union_values else None,
     }
 
 
@@ -234,6 +343,74 @@ def evaluate_file(data, file_path):
 
     wr_gap = abs(wr_gt - wr_pred)
 
+    # =========================
+    # New metrics: CE, Brier, EVLoss
+    # =========================
+    # Calculate outcome probabilities (win, draw, loss) for both players
+    ce_values = []
+    brier_values = []
+    evloss_values = []
+
+    for gt_id, key in [(gt1, "player1"), (gt2, "player2")]:
+        if gt_id in PLAYER_DISTS:
+            # Ground truth distribution
+            q = PLAYER_DISTS[gt_id]
+            # Predicted distribution from counts
+            counts = pr[key]["counts"]
+            p = normalize_counts([
+                counts["rock"],
+                counts["paper"],
+                counts["scissors"],
+            ])
+            
+            # Get opponent distribution
+            if key == "player1":
+                if gt2 in PLAYER_DISTS:
+                    opp_dist = PLAYER_DISTS[gt2]
+                else:
+                    # For Markov players, use predicted distribution
+                    opp_counts = pr["player2"]["counts"]
+                    opp_dist = normalize_counts([
+                        opp_counts["rock"],
+                        opp_counts["paper"],
+                        opp_counts["scissors"],
+                    ])
+            else:
+                if gt1 in PLAYER_DISTS:
+                    opp_dist = PLAYER_DISTS[gt1]
+                else:
+                    # For Markov players, use predicted distribution
+                    opp_counts = pr["player1"]["counts"]
+                    opp_dist = normalize_counts([
+                        opp_counts["rock"],
+                        opp_counts["paper"],
+                        opp_counts["scissors"],
+                    ])
+            
+            # Calculate outcome probabilities (win, draw, loss)
+            # p = (r, p, s), opp = (r', p', s')
+            # win: r*s' + p*r' + s*p'
+            # draw: r*r' + p*p' + s*s'
+            # loss: r*p' + p*s' + s*r'
+            p_win_gt = q[0]*opp_dist[2] + q[1]*opp_dist[0] + q[2]*opp_dist[1]
+            p_draw_gt = q[0]*opp_dist[0] + q[1]*opp_dist[1] + q[2]*opp_dist[2]
+            p_loss_gt = q[0]*opp_dist[1] + q[1]*opp_dist[2] + q[2]*opp_dist[0]
+            
+            p_win_pred = p[0]*opp_dist[2] + p[1]*opp_dist[0] + p[2]*opp_dist[1]
+            p_draw_pred = p[0]*opp_dist[0] + p[1]*opp_dist[1] + p[2]*opp_dist[2]
+            p_loss_pred = p[0]*opp_dist[1] + p[1]*opp_dist[2] + p[2]*opp_dist[0]
+            
+            p_star = (p_win_gt, p_draw_gt, p_loss_gt)
+            p_hat = (p_win_pred, p_draw_pred, p_loss_pred)
+            
+            ce_values.append(cross_entropy(p_star, p_hat))
+            brier_values.append(brier_score(p_star, p_hat))
+            evloss_values.append(ev_loss(p_star, p_hat))
+
+    ce = mean(ce_values) if ce_values else None
+    brier = mean(brier_values) if brier_values else None
+    evloss = mean(evloss_values) if evloss_values else None
+
     return {
         "file": str(file_path),
         "gt_player1": gt1,
@@ -244,6 +421,9 @@ def evaluate_file(data, file_path):
         "MDA": mda,
         "TV": tv,
         "WR_gap": wr_gap,
+        "CE": ce,
+        "Brier": brier,
+        "EVLoss": evloss,
     }
 
 
