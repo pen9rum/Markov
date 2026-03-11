@@ -51,3 +51,4 @@ parsed_output/
 .env.local
 *.key
 api_keys.txt
+plots/
