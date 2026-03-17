@@ -230,7 +230,7 @@ def get_response_openai(prompt: str,
 def get_response_deepseek(prompt: str,
                           model_name: str = "deepseek-chat",
                           api_key: str = None,
-                          max_tokens: int = 8192,
+                          max_tokens: int = None,
                           **kwargs) -> Tuple[dict, str]:
     """
     调用DeepSeek API获取响应
@@ -239,7 +239,7 @@ def get_response_deepseek(prompt: str,
         prompt: 输入提示词
         model_name: 模型名称，默认 deepseek-chat (支持 deepseek-chat, deepseek-reasoner)
         api_key: API密钥，如果为None则从环境变量DEEPSEEK_API_KEY读取
-        max_tokens: 最大生成token数
+        max_tokens: 最大生成token数 (deepseek-reasoner默认32768, deepseek-chat默认8192)
         **kwargs: 其他参数
     
     Returns:
@@ -253,6 +253,13 @@ def get_response_deepseek(prompt: str,
                 "API key not found. Please set DEEPSEEK_API_KEY environment variable "
                 "or pass api_key parameter."
             )
+    
+    # 根据模型设置默认 max_tokens
+    if max_tokens is None:
+        if "reasoner" in model_name.lower():
+            max_tokens = 32768  # reasoner 需要更多 token
+        else:
+            max_tokens = 8192   # chat 默认值
     
     # DeepSeek API endpoint (OpenAI-compatible)
     api_url = "https://api.deepseek.com/v1/chat/completions"
@@ -272,8 +279,9 @@ def get_response_deepseek(prompt: str,
         **kwargs
     }
     
-    # 发送请求
-    response = requests.post(api_url, headers=headers, json=payload)
+    # 发送请求，增加超时时间（reasoner 需要更长时间）
+    timeout = 300 if "reasoner" in model_name.lower() else 120
+    response = requests.post(api_url, headers=headers, json=payload, timeout=timeout)
     
     # 检查响应状态
     if response.status_code != 200:
@@ -284,6 +292,12 @@ def get_response_deepseek(prompt: str,
         raise Exception(f"DeepSeek API error: {response.status_code} - {error_detail}")
     
     result = response.json()
+    
+    # 检查是否因为长度限制而截断
+    finish_reason = result.get("choices", [{}])[0].get("finish_reason", "")
+    if finish_reason == "length":
+        print(f"⚠️ 警告: DeepSeek 响应因达到 max_tokens={max_tokens} 而被截断！")
+        print(f"建议增加 max_tokens 参数或简化 prompt")
     
     # 提取文本输出
     try:

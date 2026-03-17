@@ -432,6 +432,9 @@ def main():
   
   # 運行所有可能組合（類型1: 240組，類型2: 78組，共318組）
   python tools/batch_experiment.py --all --rounds 100 --model gpt-5-mini
+  
+  # 每5個實驗保存一次（減少I/O次數）
+  python tools/batch_experiment.py --type1 40 --type2 40 --rounds 100 --model deepseek-chat --save 5
         """
     )
     
@@ -448,6 +451,8 @@ def main():
                        help='LLM模型選擇（默認: gpt-5-mini）')
     parser.add_argument('--custom-model', type=str,
                        help='自定義本地模型名稱（使用此參數時忽略--model）')
+    parser.add_argument('--save', type=int, default=1,
+                       help='每N個實驗保存一次結果（默認: 1，即每完成一個就保存）')
     
     args = parser.parse_args()
     
@@ -541,7 +546,12 @@ def main():
     total = len(all_combinations)
     print(f"\n{'='*80}")
     print(f"開始批量實驗 (共 {total} 組)")
+    print(f"保存策略: 每 {args.save} 個實驗保存一次")
     print(f"{'='*80}")
+    
+    saved_count = 0
+    pending_save = []  # 待保存的實驗結果
+    SAVE_BATCH_SIZE = args.save  # 從命令行參數讀取
     
     for i, (combo_type, player1_id, player2_id) in enumerate(all_combinations, 1):
         print(f"\n進度: {i}/{total}")
@@ -552,6 +562,7 @@ def main():
             )
             exp_result['combo_type'] = combo_type
             all_experiments.append(exp_result)
+            pending_save.append(exp_result)
             
             # 顯示簡要結果
             if exp_result['success']:
@@ -570,7 +581,7 @@ def main():
         
         except Exception as e:
             print(f"✗ 異常: {str(e)}")
-            all_experiments.append({
+            exp_result = {
                 "ground_truth": {
                     "player1_id": player1_id,
                     "player2_id": player2_id
@@ -578,41 +589,49 @@ def main():
                 "combo_type": combo_type,
                 "success": False,
                 "error": str(e)
-            })
+            }
+            all_experiments.append(exp_result)
+            pending_save.append(exp_result)
+        
+        # 每5個保存一次
+        if len(pending_save) >= SAVE_BATCH_SIZE:
+            print(f"\n💾 批量保存 {len(pending_save)} 個實驗結果...")
+            for exp in pending_save:
+                try:
+                    save_single_analysis(exp, model_name, combo_type=exp['combo_type'], num_rounds=args.rounds)
+                    saved_count += 1
+                except Exception as e:
+                    print(f"  ⚠️ 保存失敗: {e}")
+            print(f"✓ 已保存 {len(pending_save)} 個結果（累計: {saved_count}/{i}）")
+            pending_save = []
+    
+    # 保存剩餘的結果
+    if pending_save:
+        print(f"\n💾 保存剩餘 {len(pending_save)} 個實驗結果...")
+        for exp in pending_save:
+            try:
+                save_single_analysis(exp, model_name, combo_type=exp['combo_type'], num_rounds=args.rounds)
+                saved_count += 1
+            except Exception as e:
+                print(f"  ⚠️ 保存失敗: {e}")
+        print(f"✓ 已保存 {len(pending_save)} 個結果（累計: {saved_count}/{total}）")
     
     # 分離類型1和類型2的結果
     type1_experiments = [exp for exp in all_experiments if exp.get('combo_type') == 1]
     type2_experiments = [exp for exp in all_experiments if exp.get('combo_type') == 2]
-    
-    # 保存每個實驗的文本文件
-    print(f"\n{'='*80}")
-    print("正在保存實驗結果...")
-    print(f"{'='*80}")
-    
-    type1_files = []
-    type2_files = []
-    
-    for exp in type1_experiments:
-        filepath = save_single_analysis(exp, model_name, combo_type=1, num_rounds=args.rounds)
-        type1_files.append(filepath)
-    
-    for exp in type2_experiments:
-        filepath = save_single_analysis(exp, model_name, combo_type=2, num_rounds=args.rounds)
-        type2_files.append(filepath)
     
     # 統計結果
     print(f"\n{'='*80}")
     print("實驗完成")
     print(f"{'='*80}")
     print(f"總實驗數: {total}")
+    print(f"已保存文件數: {saved_count}")
     print(f"  類型1（非Markov）: {len(type1_experiments)} 組")
     print(f"    成功: {sum(1 for exp in type1_experiments if exp['success'])}")
     print(f"    失敗: {sum(1 for exp in type1_experiments if not exp['success'])}")
-    print(f"    文件數: {len(type1_files)}")
     print(f"  類型2（含Markov）: {len(type2_experiments)} 組")
     print(f"    成功: {sum(1 for exp in type2_experiments if exp['success'])}")
     print(f"    失敗: {sum(1 for exp in type2_experiments if not exp['success'])}")
-    print(f"    文件數: {len(type2_files)}")
 
 
 if __name__ == "__main__":

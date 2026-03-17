@@ -38,6 +38,17 @@ def mean(values):
     return sum(values) / len(values) if values else None
 
 
+def precision_recall_f1(tp, fp, fn):
+    """Compute precision / recall / F1 safely."""
+    precision = tp / (tp + fp) if (tp + fp) > 0 else None
+    recall = tp / (tp + fn) if (tp + fn) > 0 else None
+    if precision is None or recall is None or (precision + recall) == 0:
+        f1 = None
+    else:
+        f1 = 2 * precision * recall / (precision + recall)
+    return precision, recall, f1
+
+
 def safe_min(values):
     """Return min of non-None values, or None if all None"""
     filtered = [v for v in values if v is not None]
@@ -211,8 +222,20 @@ def simulate(p1_id, p2_id, rounds=50000, seed=42):
 def summarize(rows):
     acc = [r["ACC"] for r in rows]
     mda = [r["MDA"] for r in rows]
+    markov_exact = [r.get("MarkovExact", r["MDA"]) for r in rows]
     tv = [r["TV"] for r in rows if r["TV"] is not None]
     wr_gap = [r["WR_gap"] for r in rows]
+    tp_total = sum(r.get("MarkovTP", 0) for r in rows)
+    fp_total = sum(r.get("MarkovFP", 0) for r in rows)
+    fn_total = sum(r.get("MarkovFN", 0) for r in rows)
+    tn_total = sum(r.get("MarkovTN", 0) for r in rows)
+    markov_precision, markov_recall, markov_f1 = precision_recall_f1(tp_total, fp_total, fn_total)
+
+    tp_strict_total = sum(r.get("MarkovTP_strict", 0) for r in rows)
+    fp_strict_total = sum(r.get("MarkovFP_strict", 0) for r in rows)
+    fn_strict_total = sum(r.get("MarkovFN_strict", 0) for r in rows)
+    tn_strict_total = sum(r.get("MarkovTN_strict", 0) for r in rows)
+    markov_precision_strict, markov_recall_strict, markov_f1_strict = precision_recall_f1(tp_strict_total, fp_strict_total, fn_strict_total)
     # 收集所有样本的 CE, Brier, EVLoss（保留 None）
     ce_raw = [r["CE"] for r in rows]
     brier_raw = [r["Brier"] for r in rows]
@@ -261,6 +284,18 @@ def summarize(rows):
         "samples": len(rows),
         "ACC": mean(acc),
         "MDA": mean(mda),
+        "MarkovExact": mean(markov_exact),
+        "MarkovPrecision": markov_precision,
+        "MarkovRecall": markov_recall,
+        "MarkovF1": markov_f1,
+        "MarkovTP": tp_total,
+        "MarkovFP": fp_total,
+        "MarkovFN": fn_total,
+        "MarkovTN": tn_total,
+        "MarkovTP_strict": tp_strict_total,
+        "MarkovFP_strict": fp_strict_total,
+        "MarkovFN_strict": fn_strict_total,
+        "MarkovTN_strict": tn_strict_total,
         "TV": mean(tv),
         "WR_gap": mean(wr_gap),
         "CE": mean(ce_valid),
@@ -309,6 +344,31 @@ def evaluate_file(data, file_path):
     gt_markov = (gt1 in MARKOV_PLAYERS) or (gt2 in MARKOV_PLAYERS)
     pred_markov = (pred1 in MARKOV_PLAYERS) or (pred2 in MARKOV_PLAYERS)
     mda = int(gt_markov == pred_markov)
+
+    # =========================
+    # Player-level Markov detection metrics
+    # =========================
+    gt_labels = [int(gt1 in MARKOV_PLAYERS), int(gt2 in MARKOV_PLAYERS)]
+    pred_labels = [int(pred1 in MARKOV_PLAYERS), int(pred2 in MARKOV_PLAYERS)]
+
+    markov_tp = sum(1 for gt_l, pr_l in zip(gt_labels, pred_labels) if gt_l == 1 and pr_l == 1)
+    markov_fp = sum(1 for gt_l, pr_l in zip(gt_labels, pred_labels) if gt_l == 0 and pr_l == 1)
+    markov_fn = sum(1 for gt_l, pr_l in zip(gt_labels, pred_labels) if gt_l == 1 and pr_l == 0)
+    markov_tn = sum(1 for gt_l, pr_l in zip(gt_labels, pred_labels) if gt_l == 0 and pr_l == 0)
+
+    # Strict version: TP/TN require exact identity match for ALL players
+    # TP_strict = gt Markov  AND pred == gt  (e.g. X→X)
+    # FN_strict = gt Markov  AND pred != gt  (wrong class or wrong Markov identity)
+    # TN_strict = gt Non-Markov AND pred == gt  (e.g. D→D)
+    # FP_strict = gt Non-Markov AND pred != gt  (predicted as Markov OR wrong Non-Markov, e.g. D→E)
+    markov_tp_strict = sum(1 for gt_id, pr_id in zip([gt1, gt2], [pred1, pred2])
+                           if gt_id in MARKOV_PLAYERS and pr_id == gt_id)
+    markov_fn_strict = sum(1 for gt_id, pr_id in zip([gt1, gt2], [pred1, pred2])
+                           if gt_id in MARKOV_PLAYERS and pr_id != gt_id)
+    markov_tn_strict = sum(1 for gt_id, pr_id in zip([gt1, gt2], [pred1, pred2])
+                           if gt_id not in MARKOV_PLAYERS and pr_id == gt_id)
+    markov_fp_strict = sum(1 for gt_id, pr_id in zip([gt1, gt2], [pred1, pred2])
+                           if gt_id not in MARKOV_PLAYERS and pr_id != gt_id)
 
     # =========================
     # TV distance
@@ -419,6 +479,15 @@ def evaluate_file(data, file_path):
         "pred_player2": pred2,
         "ACC": acc,
         "MDA": mda,
+        "MarkovExact": mda,
+        "MarkovTP": markov_tp,
+        "MarkovFP": markov_fp,
+        "MarkovFN": markov_fn,
+        "MarkovTN": markov_tn,
+        "MarkovTP_strict": markov_tp_strict,
+        "MarkovFP_strict": markov_fp_strict,
+        "MarkovFN_strict": markov_fn_strict,
+        "MarkovTN_strict": markov_tn_strict,
         "TV": tv,
         "WR_gap": wr_gap,
         "CE": ce,

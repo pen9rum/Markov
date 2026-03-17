@@ -114,7 +114,7 @@ def view_metrics(csv_file, filter_type=None, filter_model=None, filter_rounds=No
         for col in display_cols:
             value = row_data.get(col, '')
             # 格式化數字列
-            if col in ['acc', 'mda', 'tv', 'wr_gap', 'ce', 'brier', 'evloss', 'union']:
+            if col in ['acc', 'mda', 'markov_exact', 'markov_precision', 'markov_recall', 'markov_f1', 'tv', 'wr_gap', 'ce', 'brier', 'evloss', 'union']:
                 row.append(format_number(value, precision=4))
             elif col in ['samples', 'skipped_count', 'rounds']:
                 row.append(format_number(value, precision=0))
