@@ -50,6 +50,10 @@ Now analyze a game where both players' identities are unknown based on their mov
 **CRITICAL CONSTRAINTS**:
 - Valid player identities are ONLY: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P (distribution strategies) and X, Y, Z (Markov/reactive strategies)
 - You MUST only use these 19 letters. Do NOT invent other letters like U, T, etc.
+- Your final answer MUST contain both lines: "Player1: ..." and "Player2: ..." and they cannot be empty.
+- Even if uncertain, you MUST provide your single best guess (no abstain / no refusal).
+- You MUST provide concrete numeric counts for Rock, Paper, Scissors for BOTH players.
+- Forbidden placeholders in final answer: "[count ...]", "cannot be computed", "same", "N/A", "unknown", "TBD".
 At most, only one of the players will be Markov player (X, Y, Z). The other player will be from A-P. It is also possible that both players are from A-P.
 The Markov player's strategy comes from last player. Therefore, you have to analyze the trajectory every round to determine which player is Markov and which is distribution. If both players are from A-P, then you can analyze them as two distribution players.
 The best solution is to follow the following steps and think step by step:
@@ -70,6 +74,10 @@ After your detailed analysis, start your final answer with "Final Answer:" and p
 Player1: Identity, Rock count, Paper count, Scissors count
 Player2: Identity, Rock count, Paper count, Scissors count
 where count means the actual number of times the player played that action in the whole trajectory, which can be used to verify the correctness of your analysis.
+Use EXACTLY this output template at the end:
+Final Answer:
+Player1: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
+Player2: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
 """
     
     print(f"\n{'='*80}")
@@ -227,10 +235,11 @@ def main():
         print("5. Qwen云端API (需要DASHSCOPE_API_KEY)")
         print("6. Gemini 3 Flash (需要GEMINI_API_KEY)")
         print("7. GPT-5-mini (需要OPENAI_API_KEY)")
-        print("8. DeepSeek Chat (需要DEEPSEEK_API_KEY)")
-        print("9. DeepSeek Reasoner (需要DEEPSEEK_API_KEY)")
+        print("8. GPT-5 (需要OPENAI_API_KEY)")
+        print("9. DeepSeek Chat (需要DEEPSEEK_API_KEY)")
+        print("10. DeepSeek Reasoner (需要DEEPSEEK_API_KEY)")
         
-        choice = input("选择 (1-9): ").strip()
+        choice = input("选择 (1-10): ").strip()
         
         # 获取轨迹
         player1_trajectory = result.get_trajectory_string(1)
@@ -287,6 +296,23 @@ def main():
                 api_type="openai"
             )
         elif choice == "8":
+            # OpenAI GPT-5 API
+            print("\n使用GPT-5 API...")
+            from analysis.llm import analyze_game_trajectory
+            
+            analysis_result = analyze_game_trajectory(
+                player1_id=player1_id,
+                player2_id=player2_id,
+                player1_trajectory=player1_trajectory,
+                player2_trajectory=player2_trajectory,
+                player1_wins=result.player1_wins,
+                player2_wins=result.player2_wins,
+                draws=result.draws,
+                num_rounds=num_rounds,
+                api_type="openai",
+                model_name="gpt-5"
+            )
+        elif choice == "9":
             # DeepSeek Chat API
             print("\n使用DeepSeek Chat API...")
             from analysis.llm import analyze_game_trajectory
@@ -303,7 +329,7 @@ def main():
                 api_type="deepseek",
                 model_name="deepseek-chat"
             )
-        elif choice == "9":
+        elif choice == "10":
             # DeepSeek Reasoner API
             print("\n使用DeepSeek Reasoner API...")
             from analysis.llm import analyze_game_trajectory

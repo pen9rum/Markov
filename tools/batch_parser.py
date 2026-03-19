@@ -5,6 +5,7 @@
 import os
 import json
 import sys
+import shutil
 from pathlib import Path
 from datetime import datetime
 
@@ -139,6 +140,21 @@ def parse_batch_files(batch_results_dir: str, output_dir: str = None,
             'type2_success': 0,
             'type2_failed': 0
         }
+
+        # 解析前先清理目标输出目录，避免旧JSON残留导致结果“叠加”
+        rounds_to_clean = set()
+        for filepath in filtered_type1 + filtered_type2:
+            path_parts = Path(filepath).parts
+            rounds_to_clean.add(path_parts[-3])
+
+        for rounds in rounds_to_clean:
+            type1_output_dir = os.path.join(output_dir, model_name, rounds, 'type1_non_markov')
+            type2_output_dir = os.path.join(output_dir, model_name, rounds, 'type2_with_markov')
+
+            if os.path.exists(type1_output_dir):
+                shutil.rmtree(type1_output_dir)
+            if os.path.exists(type2_output_dir):
+                shutil.rmtree(type2_output_dir)
         
         # 处理type1
         if filtered_type1:

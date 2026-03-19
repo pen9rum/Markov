@@ -503,6 +503,17 @@ def parse_analysis_result(analysis_text: str, include_full_text: bool = False) -
         "error": None
     }
 
+    # 若原始文字包含 "Analysis failed"，代表 LLM 呼叫本身就失敗了
+    # 直接標記失敗，不使用 fallback，避免把 ground truth 當作預測結果
+    if "Analysis failed" in analysis_text:
+        result["error"] = "LLM call failed (Analysis failed marker found in raw text)"
+        ground_truth = parse_ground_truth(analysis_text)
+        if ground_truth:
+            result["ground_truth"] = ground_truth
+        if include_full_text:
+            result["full_analysis"] = analysis_text
+        return result
+
     ground_truth = parse_ground_truth(analysis_text)
     if ground_truth:
         result["ground_truth"] = ground_truth
@@ -513,13 +524,13 @@ def parse_analysis_result(analysis_text: str, include_full_text: bool = False) -
         result["predictions"] = players_data
         result["prediction_source"] = "llm_output"
     else:
-        # 兜底：在不破坏原有解析逻辑的前提下，尽量保留失败案例
+        # 兜底：保留可参考信息，但不标记为解析成功，避免污染评估数据
         fallback_players = fallback_parse_from_ground_truth(analysis_text, ground_truth)
         if fallback_players:
-            result["parse_success"] = True
             result["predictions"] = fallback_players
             result["prediction_source"] = "fallback_ground_truth_counts"
             result["warning"] = "Final Answer not parseable; used fallback counts from file ground truth"
+            result["error"] = "Final Answer missing/unparseable; fallback generated but parse_success remains False"
         else:
             result["error"] = "Failed to parse Final Answer section"
 

@@ -69,7 +69,7 @@ DASHSCOPE_API_KEY=your_qwen_api_key
 # Gemini API
 GEMINI_API_KEY=your_gemini_api_key
 
-# OpenAI API (GPT-5-mini)
+# OpenAI API (GPT-5-mini / GPT-5)
 OPENAI_API_KEY=your_openai_api_key
 
 # DeepSeek API
@@ -104,6 +104,9 @@ python src/main.py
 ```bash
 # 運行 10 組實驗，每組 100 回合，使用 GPT-5-mini
 python tools/batch_experiment.py --type1 10 --type2 10 --rounds 100 --model gpt-5-mini
+
+# 運行 10 組實驗，每組 100 回合，使用 GPT-5
+python tools/batch_experiment.py --type1 10 --type2 10 --rounds 100 --model gpt-5
 
 # 運行所有可能組合（type1: 240組, type2: 78組）
 python tools/batch_experiment.py --all --rounds 100 --model deepseek-chat
@@ -164,13 +167,14 @@ python tools/batch_experiment.py --all --rounds 100 --model deepseek-chat
 ```bash
 # 隨機抽樣模式
 python tools/batch_experiment.py --type1 10 --type2 5 --rounds 100 --model gpt-5-mini
+python tools/batch_experiment.py --type1 10 --type2 5 --rounds 100 --model gpt-5
 
 # 全組合模式（240+78=318組）
 python tools/batch_experiment.py --all --rounds 200 --model deepseek-chat
 
 # 支援的模型
 --model qwen-1.5b | qwen-3b | qwen-7b | qwen-api | gemini | 
-        gpt-5-mini | deepseek-chat | deepseek-reasoner
+        gpt-5-mini | gpt-5 | deepseek-chat | deepseek-reasoner
 ```
 
 **組合統計：**

@@ -4,6 +4,7 @@ LLM模块 - 用于分析玩家行为 (支持多種雲端API)
 支持的模型：
 - Qwen API: qwen-plus, qwen-turbo, qwen-max-latest
 - Gemini API: gemini-3-flash-preview (Gemini 3 Flash), gemini-3.1-pro-preview (Gemini 3.1 Pro)
+- OpenAI API: gpt-5-mini, gpt-5
 """
 from typing import Tuple, Dict, Any
 import os
@@ -21,7 +22,10 @@ def load_env_file():
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, value = line.split('=', 1)
-                    os.environ.setdefault(key.strip(), value.strip())
+                    key = key.strip()
+                    value = value.strip().strip('"').strip("'")
+                    # 使用 .env 中的值覆盖旧环境变量，避免误用过期/错误 key
+                    os.environ[key] = value
 
 # 启动时自动加载
 load_env_file()
@@ -167,6 +171,10 @@ def get_response_openai(prompt: str,
                         **kwargs) -> Tuple[dict, str]:
     """
     调用 OpenAI Responses API 获取响应
+
+    Args:
+        prompt: 输入提示词
+        model_name: OpenAI 模型名称，例如 gpt-5-mini 或 gpt-5
     """
     if api_key is None:
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -257,7 +265,7 @@ def get_response_deepseek(prompt: str,
     # 根据模型设置默认 max_tokens
     if max_tokens is None:
         if "reasoner" in model_name.lower():
-            max_tokens = 32768  # reasoner 需要更多 token
+            max_tokens = 65536  # reasoner 在長對局中思考消耗大量 token，需要更大上限
         else:
             max_tokens = 8192   # chat 默认值
     
@@ -466,6 +474,10 @@ Now analyze a game where both players' identities are unknown based on their mov
 **CRITICAL CONSTRAINTS**:
 - Valid player identities are ONLY: A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P (distribution strategies) and X, Y, Z (Markov/reactive strategies)
 - You MUST only use these 19 letters. Do NOT invent other letters like U, T, etc.
+- Your final answer MUST contain both lines: "Player1: ..." and "Player2: ..." and they cannot be empty.
+- Even if uncertain, you MUST provide your single best guess (no abstain / no refusal).
+- You MUST provide concrete numeric counts for Rock, Paper, Scissors for BOTH players.
+- Forbidden placeholders in final answer: "[count ...]", "cannot be computed", "same", "N/A", "unknown", "TBD".
 At most, only one of the players will be Markov player (X, Y, Z). The other player will be from A-P. It is also possible that both players are from A-P.
 The Markov player's strategy comes from last player. Therefore, you have to analyze the trajectory every round to determine which player is Markov and which is distribution. If both players are from A-P, then you can analyze them as two distribution players.
 The best solution is to follow the following steps and think step by step:
@@ -486,6 +498,10 @@ After your detailed analysis, start your final answer with "Final Answer:" and p
 Player1: Identity, Rock count, Paper count, Scissors count
 Player2: Identity, Rock count, Paper count, Scissors count
 where count means the actual number of times the player played that action in the whole trajectory, which can be used to verify the correctness of your analysis.
+Use EXACTLY this output template at the end:
+Final Answer:
+Player1: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
+Player2: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
 """
     
     print(f"\n{'='*80}")

@@ -52,3 +52,4 @@ parsed_output/
 *.key
 api_keys.txt
 plots/
+analysis_results/
