@@ -5,6 +5,7 @@ LLM模块 - 用于分析玩家行为 (支持多種雲端API)
 - Qwen API: qwen-plus, qwen-turbo, qwen-max-latest
 - Gemini API: gemini-3-flash-preview (Gemini 3 Flash), gemini-3.1-pro-preview (Gemini 3.1 Pro)
 - OpenAI API: gpt-5-mini, gpt-5
+- OpenAI-compatible 本地端点: Falcon-H1（可CPU运行）
 """
 from typing import Tuple, Dict, Any
 import os
@@ -165,6 +166,7 @@ def get_response_gemini(prompt: str,
 def get_response_openai(prompt: str,
                         model_name: str = "gpt-5-mini",
                         api_key: str = None,
+                        api_url: str = "https://api.openai.com/v1/responses",
                         max_tokens: int = 8192,
                         reasoning_effort: str = "low",
                         verbosity: str = "low",
@@ -175,21 +177,28 @@ def get_response_openai(prompt: str,
     Args:
         prompt: 输入提示词
         model_name: OpenAI 模型名称，例如 gpt-5-mini 或 gpt-5
+        api_url: Responses API 端点（默认官方 OpenAI）
     """
-    if api_key is None:
-        api_key = os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "API key not found. Please set OPENAI_API_KEY environment variable "
-                "or pass api_key parameter."
-            )
+    is_official_openai = "api.openai.com" in api_url.lower()
 
-    api_url = "https://api.openai.com/v1/responses"
+    if api_key is None:
+        if is_official_openai:
+            api_key = os.environ.get("OPENAI_API_KEY")
+        else:
+            # 本地 OpenAI-compatible 服务通常不强制 API key
+            api_key = os.environ.get("FALCON_LOCAL_API_KEY", "")
+
+    if is_official_openai and not api_key:
+        raise ValueError(
+            "API key not found. Please set OPENAI_API_KEY environment variable "
+            "or pass api_key parameter."
+        )
 
     headers = {
-        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
     payload = {
         "model": model_name,
@@ -234,6 +243,35 @@ def get_response_openai(prompt: str,
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     return result, output_text
+
+
+def get_response_openai_compatible_local(prompt: str,
+                                                                                 model_name: str = "falcon-h1-local",
+                                                                                 max_tokens: int = 8192,
+                                                                                 **kwargs) -> Tuple[dict, str]:
+        """
+        调用本地 OpenAI-compatible Responses API（默认用于 Falcon-H1）。
+
+        通过环境变量配置：
+            - FALCON_LOCAL_API_URL: 例如 http://127.0.0.1:8080/v1/responses
+            - FALCON_LOCAL_MODEL:   例如 tiiuae/Falcon-H1-7B-Instruct
+            - FALCON_LOCAL_API_KEY: 可选，若本地服务要求鉴权则设置
+        """
+        api_url = os.environ.get("FALCON_LOCAL_API_URL", "http://127.0.0.1:8080/v1/responses")
+        requested_model = model_name
+
+        if model_name in {"falcon-h1-local", "falcon-h1"}:
+                requested_model = os.environ.get("FALCON_LOCAL_MODEL", "tiiuae/Falcon-H1-7B-Instruct")
+
+        return get_response_openai(
+                prompt=prompt,
+                model_name=requested_model,
+                api_url=api_url,
+                max_tokens=max_tokens,
+                reasoning_effort="low",
+                verbosity="low",
+                **kwargs
+        )
 
 def get_response_deepseek(prompt: str,
                           model_name: str = "deepseek-chat",
@@ -455,7 +493,7 @@ def analyze_game_trajectory(player1_id: str, player2_id: str,
         player2_wins: 玩家2胜场
         draws: 平局数
         num_rounds: 总回合数
-        api_type: API类型，"qwen" 或 "gemini"
+        api_type: API类型，支持 qwen/gemini/openai/deepseek/openai_compat_local
         model_name: 模型名称，如果为None则使用默认值
     
     Returns:
@@ -535,6 +573,16 @@ Player2: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
             metadata = {
                 "model": response.get("model"),
                 "usage": response.get("usage"),
+            }
+        elif api_type.lower() == "openai_compat_local":
+            # 使用本地 OpenAI-compatible API（Falcon-H1）
+            if model_name is None:
+                model_name = "falcon-h1-local"
+            response, output_text = get_response_openai_compatible_local(prompt, model_name=model_name)
+            metadata = {
+                "model": response.get("model", model_name),
+                "usage": response.get("usage"),
+                "endpoint": os.environ.get("FALCON_LOCAL_API_URL", "http://127.0.0.1:8080/v1/responses")
             }
         else:
             # 使用 Qwen API (默认)

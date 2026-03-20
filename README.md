@@ -74,6 +74,11 @@ OPENAI_API_KEY=your_openai_api_key
 
 # DeepSeek API
 DEEPSEEK_API_KEY=your_deepseek_api_key
+
+# Falcon-H1 Local (OpenAI-compatible endpoint, optional)
+FALCON_LOCAL_API_URL=http://127.0.0.1:8080/v1/responses
+FALCON_LOCAL_MODEL=tiiuae/Falcon-H1-7B-Instruct
+# FALCON_LOCAL_API_KEY=optional_if_required
 ```
 
 或使用環境變量：
@@ -110,6 +115,9 @@ python tools/batch_experiment.py --type1 10 --type2 10 --rounds 100 --model gpt-
 
 # 運行所有可能組合（type1: 240組, type2: 78組）
 python tools/batch_experiment.py --all --rounds 100 --model deepseek-chat
+
+# 使用本地 Falcon-H1（OpenAI-compatible endpoint，CPU可先驗證）
+python tools/batch_experiment.py --type1 2 --type2 2 --rounds 100 --model falcon-h1-local
 ```
 
 详细设置说明：[SETUP.md](SETUP.md) | [LOCAL_SETUP.md](LOCAL_SETUP.md)
@@ -160,7 +168,7 @@ python tools/batch_experiment.py --all --rounds 100 --model deepseek-chat
 
 | 工具 | 說明 | 用途 |
 |------|------|------|
-| **`src/main.py`** | 單次實驗執行器 | 互動式執行單場遊戲，支援 9 種 LLM 模型 |
+| **`src/main.py`** | 單次實驗執行器 | 互動式執行單場遊戲，支援 10 種 LLM 模型 |
 | **`tools/batch_experiment.py`** | 批量實驗執行器 | 自動執行大量實驗組合，支援隨機抽樣或全組合 |
 
 **批量實驗使用範例：**
@@ -174,7 +182,7 @@ python tools/batch_experiment.py --all --rounds 200 --model deepseek-chat
 
 # 支援的模型
 --model qwen-1.5b | qwen-3b | qwen-7b | qwen-api | gemini | 
-        gpt-5-mini | gpt-5 | deepseek-chat | deepseek-reasoner
+  gpt-5-mini | gpt-5 | deepseek-chat | deepseek-reasoner | falcon-h1-local
 ```
 
 **組合統計：**

@@ -238,8 +238,9 @@ def main():
         print("8. GPT-5 (需要OPENAI_API_KEY)")
         print("9. DeepSeek Chat (需要DEEPSEEK_API_KEY)")
         print("10. DeepSeek Reasoner (需要DEEPSEEK_API_KEY)")
+        print("11. Falcon-H1 Local (OpenAI-compatible，本地端点，CPU可跑)")
         
-        choice = input("选择 (1-10): ").strip()
+        choice = input("选择 (1-11): ").strip()
         
         # 获取轨迹
         player1_trajectory = result.get_trajectory_string(1)
@@ -345,6 +346,23 @@ def main():
                 num_rounds=num_rounds,
                 api_type="deepseek",
                 model_name="deepseek-reasoner"
+            )
+        elif choice == "11":
+            # Falcon-H1 Local OpenAI-compatible API
+            print("\n使用 Falcon-H1 本地端点 API...")
+            from analysis.llm import analyze_game_trajectory
+
+            analysis_result = analyze_game_trajectory(
+                player1_id=player1_id,
+                player2_id=player2_id,
+                player1_trajectory=player1_trajectory,
+                player2_trajectory=player2_trajectory,
+                player1_wins=result.player1_wins,
+                player2_wins=result.player2_wins,
+                draws=result.draws,
+                num_rounds=num_rounds,
+                api_type="openai_compat_local",
+                model_name="falcon-h1-local"
             )
         else:
             # 本地模型

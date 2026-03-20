@@ -157,7 +157,7 @@ def run_single_experiment(player1_id: str, player2_id: str, num_rounds: int,
     # LLM分析
     analysis_result = None
     
-    if model_choice in ["5", "6", "7", "8", "9", "10"]:
+    if model_choice in ["5", "6", "7", "8", "9", "10", "11"]:
         # 云端API (Qwen, Gemini, OpenAI, DeepSeek)
         from analysis.llm import analyze_game_trajectory
         
@@ -168,6 +168,8 @@ def run_single_experiment(player1_id: str, player2_id: str, num_rounds: int,
             api_type = "openai"
         elif model_choice in ["9", "10"]:
             api_type = "deepseek"
+        elif model_choice == "11":
+            api_type = "openai_compat_local"
         else:
             api_type = "qwen"
         
@@ -433,6 +435,7 @@ def main():
   # 運行所有可能組合（類型1: 240組，類型2: 78組，共318組）
     python tools/batch_experiment.py --all --rounds 100 --model gpt-5-mini
     python tools/batch_experiment.py --all --rounds 100 --model gpt-5
+        python tools/batch_experiment.py --type1 2 --type2 2 --rounds 100 --model falcon-h1-local
   
   # 每5個實驗保存一次（減少I/O次數）
   python tools/batch_experiment.py --type1 40 --type2 40 --rounds 100 --model deepseek-chat --save 5
@@ -448,7 +451,7 @@ def main():
     parser.add_argument('--rounds', type=int, default=100,
                        help='每組遊戲回合數（默認: 100）')
     parser.add_argument('--model', type=str, default='gpt-5-mini',
-                       choices=['qwen-1.5b', 'qwen-3b', 'qwen-7b', 'qwen-api', 'gemini', 'gpt-5-mini', 'gpt-5', 'deepseek-chat', 'deepseek-reasoner'],
+                       choices=['qwen-1.5b', 'qwen-3b', 'qwen-7b', 'qwen-api', 'gemini', 'gpt-5-mini', 'gpt-5', 'deepseek-chat', 'deepseek-reasoner', 'falcon-h1-local'],
                        help='LLM模型選擇（默認: gpt-5-mini）')
     parser.add_argument('--custom-model', type=str,
                        help='自定義本地模型名稱（使用此參數時忽略--model）')
@@ -475,7 +478,8 @@ def main():
             'gpt-5-mini': ('gpt-5-mini', '7'),
             'gpt-5': ('gpt-5', '8'),
             'deepseek-chat': ('deepseek-chat', '9'),
-            'deepseek-reasoner': ('deepseek-reasoner', '10')
+            'deepseek-reasoner': ('deepseek-reasoner', '10'),
+            'falcon-h1-local': ('falcon-h1-local', '11')
         }
         model_name, model_choice = model_map[args.model]
     
