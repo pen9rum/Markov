@@ -25,8 +25,16 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 
+
+import sys
+
+# 決定 DEVICE: 有 --cpu 就用 cpu，否則預設 gpu/cuda
+if "--cpu" in sys.argv:
+    DEVICE = "cpu"
+else:
+    DEVICE = "cuda"
+
 MODEL_DEFAULT = os.getenv("FALCON_LOCAL_MODEL", "tiiuae/Falcon-H1-7B-Instruct")
-DEVICE = os.getenv("FALCON_DEVICE", "cpu")
 DTYPE_NAME = os.getenv("FALCON_DTYPE", "float32").lower()
 MAX_NEW_TOKENS = int(os.getenv("FALCON_MAX_NEW_TOKENS", "512"))
 TEMPERATURE = float(os.getenv("FALCON_TEMPERATURE", "0.2"))
