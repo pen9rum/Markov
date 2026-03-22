@@ -53,3 +53,6 @@ parsed_output/
 api_keys.txt
 plots/
 analysis_results/
+
+# JSON files
+*.json
