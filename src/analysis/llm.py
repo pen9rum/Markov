@@ -257,7 +257,7 @@ def get_response_openai_compatible_local(prompt: str,
             - FALCON_LOCAL_MODEL:   例如 tiiuae/Falcon-H1-7B-Instruct
             - FALCON_LOCAL_API_KEY: 可选，若本地服务要求鉴权则设置
         """
-        api_url = os.environ.get("FALCON_LOCAL_API_URL", "http://127.0.0.1:8080/v1/responses")
+        api_url = os.environ.get("FALCON_LOCAL_API_URL", "http://127.0.0.1:8000/v1/responses")
         requested_model = model_name
 
         if model_name in {"falcon-h1-local", "falcon-h1"}:
@@ -582,7 +582,7 @@ Player2: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
             metadata = {
                 "model": response.get("model", model_name),
                 "usage": response.get("usage"),
-                "endpoint": os.environ.get("FALCON_LOCAL_API_URL", "http://127.0.0.1:8080/v1/responses")
+                "endpoint": os.environ.get("FALCON_LOCAL_API_URL", "http://127.0.0.1:8000/v1/responses")
             }
         else:
             # 使用 Qwen API (默认)

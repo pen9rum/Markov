@@ -1,49 +1,53 @@
 """
-Falcon local OpenAI-compatible Responses API server (CPU-first).
+Falcon local OpenAI-compatible Responses API server.
 
 Endpoints:
 - GET  /health
 - POST /v1/responses
 
 Environment variables:
-- FALCON_LOCAL_MODEL  (default: tiiuae/Falcon-H1-7B-Instruct)
-- FALCON_DEVICE       (default: cpu)
-- FALCON_DTYPE        (default: float32)
-- FALCON_MAX_NEW_TOKENS (default: 512)
-- FALCON_TEMPERATURE  (default: 0.2)
-- FALCON_TOP_P        (default: 0.9)
+- FALCON_LOCAL_MODEL        (default: tiiuae/Falcon-H1-7B-Instruct)
+- FALCON_DTYPE              (default: bfloat16)
+- FALCON_MAX_NEW_TOKENS     (default: 128)
+- FALCON_LOCAL_HOST         (default: 127.0.0.1)
+- FALCON_LOCAL_PORT         (default: 8080)
+
+Optional:
+- FALCON_INPUT_MAX_LENGTH   (default: 0, meaning no manual truncation)
+    If > 0, tokenizer will truncate input to this length.
+
+Usage:
+- GPU mode (default): python tools/falcon_local_server.py
+- CPU mode:           python tools/falcon_local_server.py --cpu
 """
 
 from __future__ import annotations
 
 import os
+import sys
 import time
 import threading
+import traceback
 from typing import Any, Dict, Optional
 
+import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-
-import sys
-
-# 決定 DEVICE: 有 --cpu 就用 cpu，否則預設 gpu/cuda
 if "--cpu" in sys.argv:
     DEVICE = "cpu"
 else:
     DEVICE = "cuda"
 
 MODEL_DEFAULT = os.getenv("FALCON_LOCAL_MODEL", "tiiuae/Falcon-H1-7B-Instruct")
-DTYPE_NAME = os.getenv("FALCON_DTYPE", "float32").lower()
-MAX_NEW_TOKENS = int(os.getenv("FALCON_MAX_NEW_TOKENS", "512"))
-TEMPERATURE = float(os.getenv("FALCON_TEMPERATURE", "0.2"))
-TOP_P = float(os.getenv("FALCON_TOP_P", "0.9"))
+DTYPE_NAME = os.getenv("FALCON_DTYPE", "bfloat16").lower()
+MAX_NEW_TOKENS = int(os.getenv("FALCON_MAX_NEW_TOKENS", "128"))
+INPUT_MAX_LENGTH = int(os.getenv("FALCON_INPUT_MAX_LENGTH", "0"))
 
 
 def _resolve_dtype(name: str):
-    import torch
-
     if name == "float16":
         return torch.float16
     if name == "bfloat16":
@@ -58,8 +62,6 @@ class ResponsesRequest(BaseModel):
     model: Optional[str] = None
     input: str
     max_output_tokens: Optional[int] = None
-    temperature: Optional[float] = None
-    top_p: Optional[float] = None
 
 
 class LocalModelRuntime:
@@ -73,24 +75,40 @@ class LocalModelRuntime:
         if self._model is not None and self._loaded_model_name == model_name:
             return
 
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        self._tokenizer = AutoTokenizer.from_pretrained(
+            model_name,
+            trust_remote_code=True,
+        )
 
-        self._tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-        model_kwargs: Dict[str, Any] = {"trust_remote_code": True}
+        if self._tokenizer.pad_token is None:
+            self._tokenizer.pad_token = self._tokenizer.eos_token
+
+        model_kwargs: Dict[str, Any] = {
+            "trust_remote_code": True,
+            "torch_dtype": DTYPE,
+        }
+
+        self._model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            **model_kwargs,
+        )
 
         if DEVICE == "cpu":
-            model_kwargs["torch_dtype"] = DTYPE
-            self._model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
             self._model = self._model.to("cpu")
         else:
-            model_kwargs["torch_dtype"] = DTYPE
-            model_kwargs["device_map"] = "auto"
-            self._model = AutoModelForCausalLM.from_pretrained(model_name, **model_kwargs)
+            if not torch.cuda.is_available():
+                raise RuntimeError("CUDA is not available, but DEVICE is set to cuda.")
+            self._model = self._model.to("cuda")
 
+        self._model.eval()
         self._loaded_model_name = model_name
 
-    def generate(self, prompt: str, model_name: str, max_new_tokens: int, temperature: float, top_p: float) -> str:
+    def generate(
+        self,
+        prompt: str,
+        model_name: str,
+        max_new_tokens: int,
+    ) -> str:
         with self._lock:
             self._load(model_name)
             assert self._tokenizer is not None and self._model is not None
@@ -101,26 +119,53 @@ class LocalModelRuntime:
                 tokenize=False,
                 add_generation_prompt=True,
             )
-            inputs = self._tokenizer([text], return_tensors="pt")
+
+            tokenizer_kwargs = {
+                "return_tensors": "pt",
+                "padding": True,
+            }
+
+            # 只有使用者明確要求時才做 truncation
+            if INPUT_MAX_LENGTH > 0:
+                tokenizer_kwargs["truncation"] = True
+                tokenizer_kwargs["max_length"] = INPUT_MAX_LENGTH
+
+            inputs = self._tokenizer([text], **tokenizer_kwargs)
+
+            input_token_count = int(inputs["input_ids"].shape[1])
+            total_requested = input_token_count + int(max_new_tokens)
+
+            print("=" * 80)
+            print(f"[Falcon] model={model_name}")
+            print(f"[Falcon] device={DEVICE}, dtype={DTYPE_NAME}")
+            print(f"[Falcon] input_tokens={input_token_count}")
+            print(f"[Falcon] requested_max_new_tokens={max_new_tokens}")
+            print(f"[Falcon] requested_total_tokens={total_requested}")
+            if INPUT_MAX_LENGTH > 0:
+                print(f"[Falcon] manual_input_truncation=ON (max_length={INPUT_MAX_LENGTH})")
+            else:
+                print("[Falcon] manual_input_truncation=OFF")
+            print("=" * 80)
 
             if DEVICE == "cpu":
                 inputs = {k: v.to("cpu") for k, v in inputs.items()}
             else:
-                inputs = {k: v.to(self._model.device) for k, v in inputs.items()}
+                inputs = {k: v.to("cuda") for k, v in inputs.items()}
 
-            do_sample = temperature > 0
-            output_ids = self._model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                do_sample=do_sample,
-                temperature=max(temperature, 1e-5),
-                top_p=top_p,
-            )
+            with torch.no_grad():
+                output_ids = self._model.generate(
+                    **inputs,
+                    max_new_tokens=max_new_tokens,
+                    do_sample=False,
+                    pad_token_id=self._tokenizer.eos_token_id,
+                    use_cache=True,
+                )
+
             gen_ids = output_ids[0][inputs["input_ids"].shape[1]:]
             return self._tokenizer.decode(gen_ids, skip_special_tokens=True)
 
 
-app = FastAPI(title="Falcon Local Responses API", version="1.0.0")
+app = FastAPI(title="Falcon Local Responses API", version="1.0.3")
 runtime = LocalModelRuntime()
 
 
@@ -132,6 +177,7 @@ def health() -> Dict[str, Any]:
         "device": DEVICE,
         "dtype": DTYPE_NAME,
         "loaded_model": runtime._loaded_model_name,
+        "input_max_length": INPUT_MAX_LENGTH,
     }
 
 
@@ -142,17 +188,18 @@ def responses(req: ResponsesRequest) -> Dict[str, Any]:
 
     model_name = req.model or MODEL_DEFAULT
     max_new_tokens = req.max_output_tokens or MAX_NEW_TOKENS
-    temperature = TEMPERATURE if req.temperature is None else req.temperature
-    top_p = TOP_P if req.top_p is None else req.top_p
 
     started = time.time()
-    text = runtime.generate(
-        prompt=req.input,
-        model_name=model_name,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        top_p=top_p,
-    )
+    try:
+        text = runtime.generate(
+            prompt=req.input,
+            model_name=model_name,
+            max_new_tokens=max_new_tokens,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
     elapsed = time.time() - started
 
     return {
@@ -182,6 +229,7 @@ def responses(req: ResponsesRequest) -> Dict[str, Any]:
             "elapsed_seconds": elapsed,
             "device": DEVICE,
             "dtype": DTYPE_NAME,
+            "input_max_length": INPUT_MAX_LENGTH,
         },
     }
 
