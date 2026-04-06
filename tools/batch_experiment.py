@@ -157,7 +157,7 @@ def run_single_experiment(player1_id: str, player2_id: str, num_rounds: int,
     # LLM分析
     analysis_result = None
     
-    if model_choice in ["5", "6", "7", "8", "9", "10"]:
+    if model_choice in ["5", "6", "7", "8", "9", "10", "11", "12"]:
         # 云端API (Qwen, Gemini, OpenAI, DeepSeek)
         from analysis.llm import analyze_game_trajectory
         
@@ -168,6 +168,8 @@ def run_single_experiment(player1_id: str, player2_id: str, num_rounds: int,
             api_type = "openai"
         elif model_choice in ["9", "10"]:
             api_type = "deepseek"
+        elif model_choice in ["11", "12"]:
+            api_type = "jamba"
         else:
             api_type = "qwen"
         
@@ -448,7 +450,7 @@ def main():
     parser.add_argument('--rounds', type=int, default=100,
                        help='每組遊戲回合數（默認: 100）')
     parser.add_argument('--model', type=str, default='gpt-5-mini',
-                       choices=['qwen-1.5b', 'qwen-3b', 'qwen-7b', 'qwen-api', 'gemini', 'gpt-5-mini', 'gpt-5', 'deepseek-chat', 'deepseek-reasoner'],
+                       choices=['qwen-1.5b', 'qwen-3b', 'qwen-7b', 'qwen-api', 'gemini', 'gpt-5-mini', 'gpt-5', 'deepseek-chat', 'deepseek-reasoner', 'jamba-mini', 'jamba-large'],
                        help='LLM模型選擇（默認: gpt-5-mini）')
     parser.add_argument('--custom-model', type=str,
                        help='自定義本地模型名稱（使用此參數時忽略--model）')
@@ -475,7 +477,9 @@ def main():
             'gpt-5-mini': ('gpt-5-mini', '7'),
             'gpt-5': ('gpt-5', '8'),
             'deepseek-chat': ('deepseek-chat', '9'),
-            'deepseek-reasoner': ('deepseek-reasoner', '10')
+            'deepseek-reasoner': ('deepseek-reasoner', '10'),
+            'jamba-mini': ('jamba-mini', '11'),
+            'jamba-large': ('jamba-large', '12')
         }
         model_name, model_choice = model_map[args.model]
     

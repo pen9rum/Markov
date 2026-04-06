@@ -178,14 +178,14 @@ def parse_batch_files(batch_results_dir: str, output_dir: str = None,
                     # 解析
                     result = parse_analysis_result(content, include_full_text=include_full_text)
                     
-                    # 保存JSON
-                    filename = Path(filepath).stem + '.json'
-                    json_path = os.path.join(type1_output_dir, filename)
-                    
-                    with open(json_path, 'w', encoding='utf-8') as f:
-                        json.dump(result, f, ensure_ascii=False, indent=2)
-                    
-                    if result['parse_success']:
+                    # 只有解析成功才保存 JSON
+                    if result.get('parse_success'):
+                        filename = Path(filepath).stem + '.json'
+                        json_path = os.path.join(type1_output_dir, filename)
+                        
+                        with open(json_path, 'w', encoding='utf-8') as f:
+                            json.dump(result, f, ensure_ascii=False, indent=2)
+                        
                         model_stats['type1_success'] += 1
                         stats['successful'] += 1
                         print(f"  ✓ {Path(filepath).name}")
@@ -224,14 +224,14 @@ def parse_batch_files(batch_results_dir: str, output_dir: str = None,
                     # 解析
                     result = parse_analysis_result(content, include_full_text=include_full_text)
                     
-                    # 保存JSON
-                    filename = Path(filepath).stem + '.json'
-                    json_path = os.path.join(type2_output_dir, filename)
-                    
-                    with open(json_path, 'w', encoding='utf-8') as f:
-                        json.dump(result, f, ensure_ascii=False, indent=2)
-                    
-                    if result['parse_success']:
+                    # 只有解析成功才保存 JSON
+                    if result.get('parse_success'):
+                        filename = Path(filepath).stem + '.json'
+                        json_path = os.path.join(type2_output_dir, filename)
+                        
+                        with open(json_path, 'w', encoding='utf-8') as f:
+                            json.dump(result, f, ensure_ascii=False, indent=2)
+                        
                         model_stats['type2_success'] += 1
                         stats['successful'] += 1
                         print(f"  ✓ {Path(filepath).name}")

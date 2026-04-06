@@ -238,8 +238,10 @@ def main():
         print("8. GPT-5 (需要OPENAI_API_KEY)")
         print("9. DeepSeek Chat (需要DEEPSEEK_API_KEY)")
         print("10. DeepSeek Reasoner (需要DEEPSEEK_API_KEY)")
-        
-        choice = input("选择 (1-10): ").strip()
+        print("11. Jamba Mini (需要JAMBA_API_KEY)")
+        print("12. Jamba Large (需要JAMBA_API_KEY)")
+
+        choice = input("选择 (1-12): ").strip()
         
         # 获取轨迹
         player1_trajectory = result.get_trajectory_string(1)
@@ -333,7 +335,7 @@ def main():
             # DeepSeek Reasoner API
             print("\n使用DeepSeek Reasoner API...")
             from analysis.llm import analyze_game_trajectory
-            
+
             analysis_result = analyze_game_trajectory(
                 player1_id=player1_id,
                 player2_id=player2_id,
@@ -345,6 +347,40 @@ def main():
                 num_rounds=num_rounds,
                 api_type="deepseek",
                 model_name="deepseek-reasoner"
+            )
+        elif choice == "11":
+            # Jamba Mini API
+            print("\n使用Jamba Mini API...")
+            from analysis.llm import analyze_game_trajectory
+
+            analysis_result = analyze_game_trajectory(
+                player1_id=player1_id,
+                player2_id=player2_id,
+                player1_trajectory=player1_trajectory,
+                player2_trajectory=player2_trajectory,
+                player1_wins=result.player1_wins,
+                player2_wins=result.player2_wins,
+                draws=result.draws,
+                num_rounds=num_rounds,
+                api_type="jamba",
+                model_name="jamba-mini"
+            )
+        elif choice == "12":
+            # Jamba Large API
+            print("\n使用Jamba Large API...")
+            from analysis.llm import analyze_game_trajectory
+
+            analysis_result = analyze_game_trajectory(
+                player1_id=player1_id,
+                player2_id=player2_id,
+                player1_trajectory=player1_trajectory,
+                player2_trajectory=player2_trajectory,
+                player1_wins=result.player1_wins,
+                player2_wins=result.player2_wins,
+                draws=result.draws,
+                num_rounds=num_rounds,
+                api_type="jamba",
+                model_name="jamba-large"
             )
         else:
             # 本地模型

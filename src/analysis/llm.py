@@ -5,6 +5,7 @@ LLM模块 - 用于分析玩家行为 (支持多種雲端API)
 - Qwen API: qwen-plus, qwen-turbo, qwen-max-latest
 - Gemini API: gemini-3-flash-preview (Gemini 3 Flash), gemini-3.1-pro-preview (Gemini 3.1 Pro)
 - OpenAI API: gpt-5-mini, gpt-5
+- Jamba API: jamba-mini, jamba-large
 """
 from typing import Tuple, Dict, Any
 import os
@@ -332,6 +333,70 @@ def get_response_deepseek(prompt: str,
     return result, output_text
 
 
+def get_response_jamba(prompt: str,
+                       model_name: str = "jamba-mini",
+                       api_key: str = None,
+                       max_tokens: int = 4096,
+                       temperature: float = 0.4,
+                       **kwargs) -> Tuple[dict, str]:
+    """
+    调用 AI21 Jamba API 获取响应
+
+    Args:
+        prompt: 输入提示词
+        model_name: 模型名称，"jamba-mini" 或 "jamba-large"
+        api_key: API密钥，如果为None则从环境变量JAMBA_API_KEY读取
+        max_tokens: 最大生成token数 (上限 4096)
+        temperature: 温度参数 (0.0-2.0)，默认 0.4
+        **kwargs: 其他参数
+
+    Returns:
+        (响应字典, 输出文本)
+    """
+    if api_key is None:
+        api_key = os.environ.get("JAMBA_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "API key not found. Please set JAMBA_API_KEY environment variable "
+                "or pass api_key parameter."
+            )
+
+    api_url = "https://api.ai21.com/studio/v1/chat/completions"
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        **kwargs
+    }
+
+    response = requests.post(api_url, headers=headers, json=payload, timeout=120)
+
+    if response.status_code != 200:
+        try:
+            error_detail = response.json()
+        except Exception:
+            error_detail = response.text
+        raise Exception(f"Jamba API error: {response.status_code} - {error_detail}")
+
+    result = response.json()
+
+    try:
+        output_text = result["choices"][0]["message"]["content"]
+    except (KeyError, IndexError) as e:
+        raise Exception(f"Failed to parse Jamba response: {e}\nResponse: {result}")
+
+    return result, output_text
+
+
 def get_player_knowledge_base() -> str:
     """
     获取所有玩家的先导知识 - 行为特征描述
@@ -532,6 +597,15 @@ Player2: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
             if model_name is None:
                 model_name = "deepseek-chat"
             response, output_text = get_response_deepseek(prompt, model_name=model_name)
+            metadata = {
+                "model": response.get("model"),
+                "usage": response.get("usage"),
+            }
+        elif api_type.lower() == "jamba":
+            # 使用 Jamba API
+            if model_name is None:
+                model_name = "jamba-mini"
+            response, output_text = get_response_jamba(prompt, model_name=model_name)
             metadata = {
                 "model": response.get("model"),
                 "usage": response.get("usage"),
