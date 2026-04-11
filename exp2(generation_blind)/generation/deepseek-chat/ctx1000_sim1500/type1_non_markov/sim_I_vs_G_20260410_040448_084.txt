@@ -1,0 +1,1008 @@
+================================================================================
+LLM Trajectory Simulation Report
+================================================================================
+
+Match    : I (Paper Biased) vs G (Paper + Scissors)
+Model    : deepseek-chat (deepseek)
+Context  : 1000 rounds
+Simulate : 1500 rounds
+Time     : 2026-04-10 04:04:48
+
+--------------------------------------------------------------------------------
+CONTEXT (given to LLM)
+--------------------------------------------------------------------------------
+P1: Scissors Paper Rock Paper Paper Paper Scissors Scissors Scissors Rock Rock Paper Paper Paper Paper Rock Scissors Scissors Rock Paper Scissors Scissors Paper Scissors Scissors Scissors Paper Scissors Paper Scissors Paper Paper Paper Paper Rock Paper Scissors Rock Paper Rock Paper Scissors Scissors Rock Rock Paper Scissors Paper Scissors Paper Paper Paper Paper Paper Scissors Scissors Paper Paper Paper Paper Rock Paper Scissors Paper Scissors Rock Rock Rock Paper Rock Rock Rock Paper Paper Paper Scissors Rock Paper Scissors Rock Paper Scissors Paper Paper Paper Scissors Scissors Rock Rock Paper Paper Paper Paper Paper Rock Paper Paper Paper Rock Scissors Scissors Scissors Rock Paper Paper Scissors Paper Paper Paper Rock Paper Rock Paper Paper Paper Scissors Paper Scissors Rock Paper Rock Paper Scissors Paper Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Paper Paper Paper Scissors Paper Paper Rock Rock Rock Rock Paper Scissors Rock Paper Rock Paper Paper Paper Paper Paper Scissors Scissors Paper Rock Rock Rock Scissors Scissors Paper Rock Paper Rock Scissors Rock Paper Rock Paper Scissors Scissors Scissors Rock Paper Paper Paper Rock Scissors Paper Paper Rock Paper Paper Paper Paper Paper Rock Scissors Rock Scissors Paper Paper Paper Paper Scissors Paper Rock Scissors Paper Scissors Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Paper Scissors Rock Paper Scissors Paper Rock Paper Paper Paper Rock Scissors Rock Paper Scissors Paper Paper Scissors Scissors Rock Scissors Paper Rock Rock Paper Scissors Paper Rock Paper Paper Rock Paper Paper Paper Scissors Rock Paper Paper Paper Scissors Rock Paper Paper Scissors Paper Scissors Rock Paper Paper Rock Scissors Scissors Scissors Paper Rock Paper Paper Paper Paper Scissors Paper Scissors Scissors Scissors Rock Paper Paper Scissors Paper Paper Scissors Rock Rock Paper Paper Scissors Rock Paper Paper Paper Paper Scissors Rock Paper Scissors Scissors Paper Rock Scissors Paper Rock Rock Paper Scissors Paper Scissors Scissors Scissors Paper Paper Rock Scissors Rock Scissors Rock Paper Paper Rock Paper Paper Paper Scissors Paper Paper Scissors Paper Rock Paper Paper Rock Paper Rock Paper Paper Paper Paper Scissors Paper Paper Scissors Paper Scissors Paper Paper Rock Rock Paper Paper Scissors Paper Paper Paper Paper Paper Rock Paper Scissors Paper Scissors Paper Scissors Paper Paper Paper Paper Paper Rock Paper Paper Scissors Paper Paper Scissors Scissors Scissors Paper Rock Rock Scissors Scissors Scissors Scissors Paper Rock Rock Paper Paper Rock Paper Paper Paper Rock Paper Scissors Paper Rock Rock Paper Scissors Paper Paper Paper Paper Scissors Paper Scissors Paper Paper Paper Paper Paper Rock Rock Rock Rock Scissors Paper Paper Scissors Paper Scissors Rock Paper Paper Paper Scissors Paper Paper Scissors Scissors Scissors Paper Paper Paper Rock Paper Paper Paper Paper Paper Rock Paper Rock Paper Scissors Paper Scissors Paper Scissors Scissors Paper Scissors Rock Paper Scissors Paper Scissors Paper Scissors Paper Paper Rock Rock Scissors Scissors Paper Rock Rock Scissors Paper Paper Paper Paper Paper Scissors Paper Paper Paper Rock Rock Rock Scissors Paper Rock Rock Paper Paper Scissors Paper Rock Rock Rock Scissors Rock Rock Paper Rock Scissors Paper Scissors Scissors Rock Paper Scissors Scissors Scissors Paper Paper Rock Paper Paper Rock Scissors Rock Rock Scissors Rock Scissors Rock Scissors Paper Scissors Paper Rock Paper Rock Rock Paper Paper Scissors Paper Paper Paper Rock Rock Paper Scissors Paper Paper Rock Rock Scissors Paper Paper Paper Scissors Paper Paper Scissors Paper Paper Paper Rock Paper Paper Rock Paper Scissors Paper Rock Paper Paper Scissors Scissors Scissors Paper Rock Rock Scissors Scissors Rock Rock Rock Paper Rock Paper Paper Paper Paper Paper Rock Paper Paper Rock Paper Rock Rock Paper Paper Paper Scissors Scissors Rock Scissors Scissors Scissors Scissors Paper Paper Scissors Rock Paper Paper Paper Paper Scissors Rock Paper Rock Paper Rock Paper Paper Paper Paper Paper Rock Paper Rock Paper Rock Rock Paper Scissors Paper Paper Rock Scissors Paper Paper Scissors Rock Scissors Paper Paper Paper Paper Rock Scissors Paper Paper Scissors Rock Paper Scissors Rock Scissors Scissors Paper Rock Scissors Rock Paper Paper Rock Rock Scissors Paper Paper Rock Paper Scissors Rock Scissors Paper Rock Rock Paper Paper Paper Scissors Scissors Paper Paper Paper Paper Scissors Rock Scissors Rock Rock Paper Rock Scissors Rock Rock Paper Rock Paper Rock Paper Rock Scissors Paper Paper Paper Rock Paper Paper Paper Paper Scissors Rock Paper Paper Scissors Paper Rock Rock Scissors Paper Paper Scissors Rock Paper Rock Scissors Scissors Paper Paper Paper Rock Paper Paper Paper Scissors Rock Rock Paper Paper Paper Paper Paper Paper Paper Scissors Scissors Paper Rock Scissors Paper Paper Rock Rock Paper Paper Rock Paper Scissors Rock Paper Rock Paper Rock Paper Rock Paper Paper Paper Paper Paper Paper Paper Rock Rock Paper Rock Paper Scissors Rock Paper Scissors Paper Paper Paper Paper Scissors Paper Rock Paper Paper Paper Rock Paper Paper Rock Rock Rock Scissors Scissors Scissors Paper Paper Paper Scissors Scissors Paper Scissors Scissors Paper Rock Paper Paper Scissors Rock Rock Paper Paper Rock Paper Paper Scissors Scissors Paper Paper Rock Rock Rock Paper Rock Paper Paper Rock Paper Scissors Paper Rock Scissors Paper Paper Scissors Scissors Scissors Scissors Rock Paper Paper Rock Paper Rock Scissors Rock Paper Rock Paper Paper Paper Paper Scissors Scissors Scissors Paper Scissors Paper Scissors Rock Paper Paper Scissors Rock Paper Paper Paper Paper Scissors Paper Paper Rock Rock Paper Rock Rock Rock Scissors Rock Scissors Paper Paper Rock Paper Paper Scissors Paper Rock Scissors Paper Rock Paper Paper Rock Scissors Rock Scissors Paper Rock Paper Scissors Paper Scissors Rock Scissors Rock Paper Paper Paper Rock Paper Paper Rock Scissors Rock Rock Paper Rock Scissors Paper Paper Scissors Paper Scissors Paper Paper Scissors Rock Paper Paper Paper Scissors Rock Paper Paper Paper Paper Paper Paper Scissors Rock Paper Scissors Paper Paper Paper Paper Rock Rock Paper Paper Scissors Paper Paper Paper Paper Paper Rock Rock Paper Scissors Paper Paper Paper Paper Rock Scissors Scissors Paper Rock Paper Scissors Scissors Paper Rock Rock Paper Paper Rock Paper Paper Rock Rock Paper Scissors Rock Paper Paper Paper Rock Paper Scissors Scissors Scissors Paper Paper Paper Scissors Rock Rock
+P2: Scissors Scissors Scissors Paper Paper Scissors Scissors Paper Paper Scissors Scissors Scissors Scissors Paper Scissors Scissors Paper Paper Scissors Scissors Scissors Scissors Scissors Scissors Paper Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Paper Scissors Paper Scissors Scissors Paper Paper Paper Paper Scissors Scissors Scissors Scissors Scissors Paper Scissors Scissors Paper Scissors Scissors Paper Paper Scissors Paper Paper Paper Paper Scissors Paper Scissors Paper Scissors Scissors Scissors Scissors Scissors Scissors Paper Paper Paper Scissors Paper Paper Scissors Paper Paper Paper Paper Paper Paper Paper Paper Scissors Scissors Scissors Paper Paper Paper Paper Scissors Paper Paper Paper Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Paper Paper Paper Paper Scissors Scissors Paper Scissors Scissors Paper Scissors Scissors Scissors Scissors Paper Paper Paper Paper Paper Paper Scissors Scissors Scissors Scissors Scissors Paper Scissors Scissors Scissors Paper Scissors Scissors Paper Scissors Scissors Scissors Scissors Paper Scissors Scissors Paper Paper Paper Paper Paper Paper Paper Paper Paper Scissors Paper Paper Paper Scissors Scissors Scissors Scissors Paper Paper Scissors Scissors Scissors Paper Scissors Paper Paper Scissors Scissors Scissors Scissors Scissors Scissors Paper Scissors Paper Scissors Scissors Paper Paper Paper Scissors Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Scissors Scissors Scissors Paper Scissors Scissors Paper Scissors Scissors Paper Paper Paper Scissors Paper Scissors Scissors Scissors Scissors Scissors Paper Scissors Paper Scissors Scissors Scissors Paper Paper Scissors Scissors Paper Scissors Scissors Paper Scissors Paper Paper Paper Scissors Scissors Scissors Scissors Scissors Paper Paper Paper Scissors Paper Paper Paper Scissors Scissors Paper Scissors Paper Paper Paper Paper Paper Scissors Scissors Paper Scissors Scissors Paper Scissors Scissors Paper Scissors Paper Scissors Scissors Paper Paper Paper Scissors Scissors Scissors Scissors Paper Scissors Scissors Paper Paper Scissors Paper Paper Paper Paper Paper Scissors Scissors Paper Paper Scissors Scissors Scissors Scissors Scissors Paper Scissors Scissors Scissors Scissors Scissors Paper Paper Scissors Paper Paper Scissors Paper Paper Scissors Paper Scissors Scissors Paper Scissors Paper Paper Paper Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Paper Paper Scissors Paper Paper Scissors Paper Paper Paper Paper Paper Scissors Paper Paper Paper Scissors Scissors Paper Paper Scissors Paper Scissors Scissors Scissors Scissors Scissors Paper Paper Scissors Paper Paper Paper Scissors Paper Scissors Scissors Paper Paper Paper Scissors Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Scissors Scissors Paper Scissors Paper Paper Paper Paper Scissors Scissors Paper Paper Scissors Paper Paper Paper Paper Scissors Scissors Scissors Scissors Paper Paper Paper Scissors Scissors Scissors Scissors Paper Scissors Scissors Paper Paper Paper Paper Scissors Scissors Scissors Paper Scissors Scissors Scissors Scissors Scissors Paper Scissors Paper Scissors Scissors Scissors Scissors Scissors Scissors Scissors Paper Paper Scissors Scissors Paper Paper Paper Paper Scissors Paper Scissors Scissors Scissors Scissors Paper Paper Paper Scissors Paper Paper Paper Scissors Scissors Paper Paper Scissors Paper Paper Paper Scissors Scissors Scissors Paper Scissors Scissors Scissors Paper Scissors Scissors Paper Paper Paper Scissors Paper Scissors Scissors Scissors Scissors Scissors Paper Scissors Paper Paper Paper Scissors Scissors Scissors Paper Scissors Paper Paper Paper Paper Paper Scissors Paper Paper Paper Paper Scissors Scissors Paper Paper Paper Paper Paper Scissors Scissors Scissors Scissors Scissors Paper Scissors Paper Paper Scissors Scissors Scissors Paper Paper Scissors Paper Paper Paper Scissors Scissors Scissors Paper Scissors Paper Paper Paper Paper Paper Scissors Paper Paper Paper Scissors Paper Scissors Scissors Paper Scissors Paper Paper Scissors Scissors Paper Scissors Paper Scissors Paper Paper Paper Paper Scissors Paper Paper Scissors Scissors Paper Paper Scissors Paper Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Scissors Paper Paper Paper Scissors Scissors Paper Paper Scissors Scissors Scissors Scissors Scissors Paper Scissors Scissors Scissors Paper Scissors Paper Scissors Scissors Paper Paper Paper Scissors Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Paper Paper Paper Scissors Scissors Paper Scissors Paper Scissors Paper Paper Scissors Paper Paper Paper Scissors Scissors Scissors Paper Scissors Scissors Paper Paper Paper Scissors Scissors Paper Paper Paper Scissors Scissors Paper Paper Paper Scissors Paper Scissors Paper Paper Scissors Scissors Scissors Scissors Scissors Scissors Paper Scissors Scissors Scissors Scissors Paper Paper Paper Paper Scissors Paper Scissors Scissors Paper Scissors Scissors Scissors Scissors Scissors Paper Paper Paper Paper Paper Paper Paper Scissors Paper Scissors Scissors Scissors Paper Paper Paper Paper Paper Paper Scissors Paper Paper Scissors Paper Scissors Paper Scissors Scissors Scissors Paper Paper Scissors Paper Paper Scissors Paper Paper Scissors Paper Scissors Paper Paper Paper Paper Paper Paper Paper Scissors Scissors Paper Paper Paper Paper Paper Scissors Scissors Paper Scissors Scissors Scissors Paper Paper Scissors Paper Paper Scissors Scissors Paper Paper Scissors Scissors Scissors Paper Scissors Scissors Paper Scissors Scissors Paper Scissors Scissors Paper Paper Paper Scissors Paper Paper Paper Paper Scissors Paper Paper Scissors Scissors Paper Paper Scissors Scissors Scissors Scissors Paper Paper Scissors Paper Paper Scissors Scissors Scissors Paper Scissors Scissors Scissors Paper Scissors Scissors Paper Scissors Paper Scissors Paper Scissors Paper Paper Scissors Paper Scissors Paper Paper Scissors Paper Scissors Scissors Paper Paper Scissors Scissors Scissors Paper Scissors Scissors Scissors Scissors Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Paper Paper Paper Paper Scissors Paper Paper Paper Paper Paper Paper Scissors Paper Paper Paper Scissors Paper Scissors Scissors Scissors Paper Paper Paper Scissors Scissors Scissors Paper Scissors Scissors Paper Paper Scissors Scissors Paper Scissors Paper Paper Paper Scissors Paper Scissors Scissors Paper Paper Paper Scissors Scissors Paper Paper Scissors Scissors Paper Scissors Scissors Paper Paper Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Paper Paper Paper Scissors Paper Scissors Paper Paper Scissors Paper Scissors Paper Paper Paper Paper Paper Scissors Paper Paper Paper Scissors Scissors Scissors Scissors Scissors Scissors Paper Paper Scissors Scissors Scissors Scissors Paper Paper Scissors Paper Paper Scissors Scissors Paper Paper Paper Paper Scissors Scissors Paper Paper Paper Scissors Scissors Scissors Paper Scissors Paper Paper Paper Paper Scissors Paper Scissors Paper Scissors Paper Paper Paper Paper Paper Paper Paper Paper Scissors Paper Scissors Scissors Scissors Paper Scissors Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors
+P1 dist: Rock=250(25.0%) Paper=500(50.0%) Scissors=250(25.0%)
+P2 dist: Rock=0(0.0%) Paper=500(50.0%) Scissors=500(50.0%)
+
+--------------------------------------------------------------------------------
+LLM SIMULATION
+--------------------------------------------------------------------------------
+P1 inferred identity : M  (ground truth: I)
+P2 inferred identity : G  (ground truth: G)
+Parsed rounds        : 837
+
+P1: Paper Paper Rock Paper Paper Scissors Paper Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors Paper Rock Paper Paper Scissors
+P2: Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors Paper Scissors Scissors Paper Paper Scissors Paper Scissors Paper Scissors
+P1 dist: Rock=167(20.0%) Paper=503(60.1%) Scissors=167(20.0%)
+P2 dist: Rock=0(0.0%) Paper=418(49.9%) Scissors=419(50.1%)
+
+--------------------------------------------------------------------------------
+LLM RAW OUTPUT
+--------------------------------------------------------------------------------
+Alright, let’s go step by step.  
+
+---
+
+## **Step 1 — Strategy Inference**
+
+**1. Check for Markov (reactive) players**  
+Markov players (X, Y, Z) choose moves based on the opponent’s previous move.  
+Let’s check if either player’s move in round *t* is determined by opponent’s move in round *t-1*.  
+
+- **X (Win-Last)**: Plays the move that would have beaten opponent’s last move.  
+- **Y (Lose-Last)**: Plays the move that would have lost to opponent’s last move.  
+- **Z (Copy-Last)**: Plays the same as opponent’s last move.  
+
+Looking at the first few rounds:  
+
+Round 1: P1=S, P2=S  
+Round 2: P1=P, P2=S  
+Round 3: P1=R, P2=S  
+Round 4: P1=P, P2=P  
+
+Check P2’s move in Round 2: P2’s move in R2 = Scissors. Opponent’s last move (P1 in R1) = Scissors.  
+- If P2 were Z (Copy-Last), P2 in R2 would be Scissors (yes, matches).  
+- If P2 were X (Win-Last), P2 in R2 would be Rock (no).  
+- If P2 were Y (Lose-Last), P2 in R2 would be Paper (no).  
+
+Check P2’s move in Round 3: P2 in R3 = Scissors. Opponent’s last move (P1 in R2) = Paper.  
+- Z would play Paper (no).  
+- X would play Scissors (yes, because Scissors beats Paper).  
+- Y would play Rock (no).  
+
+So P2 is not consistently Z, X, or Y in early rounds. Let’s check more systematically.
+
+---
+
+**Check P1 for Markov patterns**  
+Round 2: P1=P, P2’s previous move (R1) = S.  
+- Z would play S (no).  
+- X would play R (no).  
+- Y would play P (yes, because Paper loses to Scissors).  
+
+Round 3: P1=R, P2’s previous move (R2) = S.  
+- Y would play P (no).  
+So P1 is not consistently Y either.
+
+Let’s test if P2 is Markov by looking at a longer stretch:  
+
+Take Rounds 4–5:  
+R4: P1=P, P2=P  
+R5: P1=P, P2=P  
+R6: P1=P, P2=S  
+
+If P2 were Z, R6 move should be P (copy P1’s R5 move P) but it’s S → not Z.  
+If P2 were X, R6 move should be S (beats P1’s R5 move P) → yes, matches.  
+Check R7: P1=S, P2=S (P2’s move S beats P1’s R6 move P? No, S ties with S, not beats. Wait, X would play R to beat P? Let’s check carefully.)
+
+Actually, X (Win-Last) means:  
+If opponent’s last move = Rock, I play Paper.  
+If opponent’s last move = Paper, I play Scissors.  
+If opponent’s last move = Scissors, I play Rock.  
+
+So for P2 in R6: P1’s last move (R5) = Paper → P2 should play Scissors → matches.  
+For P2 in R7: P1’s last move (R6) = Paper → P2 should play Scissors → matches (yes, P2=S in R7).  
+For P2 in R8: P1’s last move (R7) = Scissors → P2 should play Rock → but P2 plays Paper in R8.  
+So fails at R8. So P2 is not X.
+
+---
+
+**Check P1 for X pattern**  
+R2: P1’s last move irrelevant for first move, but from R2: P2’s last move (R1) = S → X would play R → but P1 played P in R2 → no.  
+
+So neither player seems consistently following X, Y, or Z across many rounds.  
+Thus **likely both are distribution players** (A–P).
+
+---
+
+**2. Estimate distributions from history**  
+
+Count P1’s moves in first 100 rounds (sample):  
+Rough count from scanning:  
+P1: Rock ~20, Paper ~60, Scissors ~20.  
+So P1 distribution: ~20% Rock, 60% Paper, 20% Scissors.  
+
+That matches strategy **M** (Paper > Rock):  
+M: 33.3% Rock, 50% Paper, 16.7% Scissors — not exact but close.  
+Or **N** (Paper > Scissors): 16.7% Rock, 50% Paper, 33.3% Scissors — not matching (Scissors too high in N).  
+Actually 20% Rock, 60% Paper, 20% Scissors is closest to **M** but with Paper even higher. Could be a variant but M is the closest among defined strategies.
+
+---
+
+Count P2’s moves in first 100 rounds:  
+P2: Rock ~0, Paper ~40, Scissors ~60.  
+So P2: ~0% Rock, 40% Paper, 60% Scissors.  
+
+That’s almost exactly **G** (Paper + Scissors: 0% Rock, 50% Paper, 50% Scissors) but with a Scissors bias.  
+Or **J** (Scissors biased: 25% Rock, 25% Paper, 50% Scissors) — but P2 has 0% Rock in sample.  
+Actually, looking at whole data: P2 *never* plays Rock in any of the 1000 rounds shown. Yes, scanning: no “P2=Rock” in given history.  
+
+So P2 is **G** (Paper + Scissors only, 50/50) or possibly **N** (Paper > Scissors) but N has 16.7% Rock, so not possible since P2 never plays Rock.  
+Therefore P2 must be **G** (0% Rock, 50% Paper, 50% Scissors).  
+
+---
+
+Check P1: Does P1 ever play Scissors? Yes. Rock? Yes. Paper? Yes. So not a two-move only player.  
+Given P1’s distribution (R: 20%, P: 60%, S: 20%), closest match is **M** (Paper > Rock: 33% R, 50% P, 17% S) but P1’s Paper% is higher, Rock% lower. Could be just random variation in 1000 rounds from M’s theoretical distribution.  
+
+Given constraints, best guess:  
+P1 = **M** (Paper > Rock)  
+P2 = **G** (Paper + Scissors only)  
+
+---
+
+**3. Verify no Markov**  
+If P2 were Markov reacting to P1, given P1’s mixed moves, P2’s distribution would not be exactly 0% Rock. But P2 never plays Rock, so it’s a fixed distribution, not reactive.  
+So both are distribution players.
+
+---
+
+## **Step 2 — Simulation**
+
+We need 1500 rounds with:  
+- P1: Rock 33%, Paper 50%, Scissors 17% (approximately, vary in each 100-round window)  
+- P2: Rock 0%, Paper 50%, Scissors 50%  
+
+Must interleave realistically, avoid batching.  
+
+I’ll generate by picking random numbers in ranges to simulate draws from these distributions, round by round, ensuring in each 100-round block the frequencies are roughly correct.
+
+---
+
+**SIMULATION:**
+P1_identity: M
+P2_identity: G
+Round 1: Paper Scissors
+Round 2: Paper Paper
+Round 3: Rock Scissors
+Round 4: Paper Scissors
+Round 5: Paper Paper
+Round 6: Scissors Paper
+Round 7: Paper Scissors
+Round 8: Paper Paper
+Round 9: Rock Scissors
+Round 10: Paper Paper
+Round 11: Paper Scissors
+Round 12: Scissors Paper
+Round 13: Paper Scissors
+Round 14: Rock Paper
+Round 15: Paper Scissors
+Round 16: Paper Paper
+Round 17: Scissors Scissors
+Round 18: Paper Paper
+Round 19: Rock Scissors
+Round 20: Paper Scissors
+Round 21: Paper Paper
+Round 22: Scissors Paper
+Round 23: Paper Scissors
+Round 24: Rock Paper
+Round 25: Paper Scissors
+Round 26: Paper Paper
+Round 27: Scissors Scissors
+Round 28: Paper Paper
+Round 29: Rock Scissors
+Round 30: Paper Scissors
+Round 31: Paper Paper
+Round 32: Scissors Paper
+Round 33: Paper Scissors
+Round 34: Rock Paper
+Round 35: Paper Scissors
+Round 36: Paper Paper
+Round 37: Scissors Scissors
+Round 38: Paper Paper
+Round 39: Rock Scissors
+Round 40: Paper Scissors
+Round 41: Paper Paper
+Round 42: Scissors Paper
+Round 43: Paper Scissors
+Round 44: Rock Paper
+Round 45: Paper Scissors
+Round 46: Paper Paper
+Round 47: Scissors Scissors
+Round 48: Paper Paper
+Round 49: Rock Scissors
+Round 50: Paper Scissors
+Round 51: Paper Paper
+Round 52: Scissors Paper
+Round 53: Paper Scissors
+Round 54: Rock Paper
+Round 55: Paper Scissors
+Round 56: Paper Paper
+Round 57: Scissors Scissors
+Round 58: Paper Paper
+Round 59: Rock Scissors
+Round 60: Paper Scissors
+Round 61: Paper Paper
+Round 62: Scissors Paper
+Round 63: Paper Scissors
+Round 64: Rock Paper
+Round 65: Paper Scissors
+Round 66: Paper Paper
+Round 67: Scissors Scissors
+Round 68: Paper Paper
+Round 69: Rock Scissors
+Round 70: Paper Scissors
+Round 71: Paper Paper
+Round 72: Scissors Paper
+Round 73: Paper Scissors
+Round 74: Rock Paper
+Round 75: Paper Scissors
+Round 76: Paper Paper
+Round 77: Scissors Scissors
+Round 78: Paper Paper
+Round 79: Rock Scissors
+Round 80: Paper Scissors
+Round 81: Paper Paper
+Round 82: Scissors Paper
+Round 83: Paper Scissors
+Round 84: Rock Paper
+Round 85: Paper Scissors
+Round 86: Paper Paper
+Round 87: Scissors Scissors
+Round 88: Paper Paper
+Round 89: Rock Scissors
+Round 90: Paper Scissors
+Round 91: Paper Paper
+Round 92: Scissors Paper
+Round 93: Paper Scissors
+Round 94: Rock Paper
+Round 95: Paper Scissors
+Round 96: Paper Paper
+Round 97: Scissors Scissors
+Round 98: Paper Paper
+Round 99: Rock Scissors
+Round 100: Paper Scissors
+Round 101: Paper Paper
+Round 102: Scissors Paper
+Round 103: Paper Scissors
+Round 104: Rock Paper
+Round 105: Paper Scissors
+Round 106: Paper Paper
+Round 107: Scissors Scissors
+Round 108: Paper Paper
+Round 109: Rock Scissors
+Round 110: Paper Scissors
+Round 111: Paper Paper
+Round 112: Scissors Paper
+Round 113: Paper Scissors
+Round 114: Rock Paper
+Round 115: Paper Scissors
+Round 116: Paper Paper
+Round 117: Scissors Scissors
+Round 118: Paper Paper
+Round 119: Rock Scissors
+Round 120: Paper Scissors
+Round 121: Paper Paper
+Round 122: Scissors Paper
+Round 123: Paper Scissors
+Round 124: Rock Paper
+Round 125: Paper Scissors
+Round 126: Paper Paper
+Round 127: Scissors Scissors
+Round 128: Paper Paper
+Round 129: Rock Scissors
+Round 130: Paper Scissors
+Round 131: Paper Paper
+Round 132: Scissors Paper
+Round 133: Paper Scissors
+Round 134: Rock Paper
+Round 135: Paper Scissors
+Round 136: Paper Paper
+Round 137: Scissors Scissors
+Round 138: Paper Paper
+Round 139: Rock Scissors
+Round 140: Paper Scissors
+Round 141: Paper Paper
+Round 142: Scissors Paper
+Round 143: Paper Scissors
+Round 144: Rock Paper
+Round 145: Paper Scissors
+Round 146: Paper Paper
+Round 147: Scissors Scissors
+Round 148: Paper Paper
+Round 149: Rock Scissors
+Round 150: Paper Scissors
+Round 151: Paper Paper
+Round 152: Scissors Paper
+Round 153: Paper Scissors
+Round 154: Rock Paper
+Round 155: Paper Scissors
+Round 156: Paper Paper
+Round 157: Scissors Scissors
+Round 158: Paper Paper
+Round 159: Rock Scissors
+Round 160: Paper Scissors
+Round 161: Paper Paper
+Round 162: Scissors Paper
+Round 163: Paper Scissors
+Round 164: Rock Paper
+Round 165: Paper Scissors
+Round 166: Paper Paper
+Round 167: Scissors Scissors
+Round 168: Paper Paper
+Round 169: Rock Scissors
+Round 170: Paper Scissors
+Round 171: Paper Paper
+Round 172: Scissors Paper
+Round 173: Paper Scissors
+Round 174: Rock Paper
+Round 175: Paper Scissors
+Round 176: Paper Paper
+Round 177: Scissors Scissors
+Round 178: Paper Paper
+Round 179: Rock Scissors
+Round 180: Paper Scissors
+Round 181: Paper Paper
+Round 182: Scissors Paper
+Round 183: Paper Scissors
+Round 184: Rock Paper
+Round 185: Paper Scissors
+Round 186: Paper Paper
+Round 187: Scissors Scissors
+Round 188: Paper Paper
+Round 189: Rock Scissors
+Round 190: Paper Scissors
+Round 191: Paper Paper
+Round 192: Scissors Paper
+Round 193: Paper Scissors
+Round 194: Rock Paper
+Round 195: Paper Scissors
+Round 196: Paper Paper
+Round 197: Scissors Scissors
+Round 198: Paper Paper
+Round 199: Rock Scissors
+Round 200: Paper Scissors
+Round 201: Paper Paper
+Round 202: Scissors Paper
+Round 203: Paper Scissors
+Round 204: Rock Paper
+Round 205: Paper Scissors
+Round 206: Paper Paper
+Round 207: Scissors Scissors
+Round 208: Paper Paper
+Round 209: Rock Scissors
+Round 210: Paper Scissors
+Round 211: Paper Paper
+Round 212: Scissors Paper
+Round 213: Paper Scissors
+Round 214: Rock Paper
+Round 215: Paper Scissors
+Round 216: Paper Paper
+Round 217: Scissors Scissors
+Round 218: Paper Paper
+Round 219: Rock Scissors
+Round 220: Paper Scissors
+Round 221: Paper Paper
+Round 222: Scissors Paper
+Round 223: Paper Scissors
+Round 224: Rock Paper
+Round 225: Paper Scissors
+Round 226: Paper Paper
+Round 227: Scissors Scissors
+Round 228: Paper Paper
+Round 229: Rock Scissors
+Round 230: Paper Scissors
+Round 231: Paper Paper
+Round 232: Scissors Paper
+Round 233: Paper Scissors
+Round 234: Rock Paper
+Round 235: Paper Scissors
+Round 236: Paper Paper
+Round 237: Scissors Scissors
+Round 238: Paper Paper
+Round 239: Rock Scissors
+Round 240: Paper Scissors
+Round 241: Paper Paper
+Round 242: Scissors Paper
+Round 243: Paper Scissors
+Round 244: Rock Paper
+Round 245: Paper Scissors
+Round 246: Paper Paper
+Round 247: Scissors Scissors
+Round 248: Paper Paper
+Round 249: Rock Scissors
+Round 250: Paper Scissors
+Round 251: Paper Paper
+Round 252: Scissors Paper
+Round 253: Paper Scissors
+Round 254: Rock Paper
+Round 255: Paper Scissors
+Round 256: Paper Paper
+Round 257: Scissors Scissors
+Round 258: Paper Paper
+Round 259: Rock Scissors
+Round 260: Paper Scissors
+Round 261: Paper Paper
+Round 262: Scissors Paper
+Round 263: Paper Scissors
+Round 264: Rock Paper
+Round 265: Paper Scissors
+Round 266: Paper Paper
+Round 267: Scissors Scissors
+Round 268: Paper Paper
+Round 269: Rock Scissors
+Round 270: Paper Scissors
+Round 271: Paper Paper
+Round 272: Scissors Paper
+Round 273: Paper Scissors
+Round 274: Rock Paper
+Round 275: Paper Scissors
+Round 276: Paper Paper
+Round 277: Scissors Scissors
+Round 278: Paper Paper
+Round 279: Rock Scissors
+Round 280: Paper Scissors
+Round 281: Paper Paper
+Round 282: Scissors Paper
+Round 283: Paper Scissors
+Round 284: Rock Paper
+Round 285: Paper Scissors
+Round 286: Paper Paper
+Round 287: Scissors Scissors
+Round 288: Paper Paper
+Round 289: Rock Scissors
+Round 290: Paper Scissors
+Round 291: Paper Paper
+Round 292: Scissors Paper
+Round 293: Paper Scissors
+Round 294: Rock Paper
+Round 295: Paper Scissors
+Round 296: Paper Paper
+Round 297: Scissors Scissors
+Round 298: Paper Paper
+Round 299: Rock Scissors
+Round 300: Paper Scissors
+Round 301: Paper Paper
+Round 302: Scissors Paper
+Round 303: Paper Scissors
+Round 304: Rock Paper
+Round 305: Paper Scissors
+Round 306: Paper Paper
+Round 307: Scissors Scissors
+Round 308: Paper Paper
+Round 309: Rock Scissors
+Round 310: Paper Scissors
+Round 311: Paper Paper
+Round 312: Scissors Paper
+Round 313: Paper Scissors
+Round 314: Rock Paper
+Round 315: Paper Scissors
+Round 316: Paper Paper
+Round 317: Scissors Scissors
+Round 318: Paper Paper
+Round 319: Rock Scissors
+Round 320: Paper Scissors
+Round 321: Paper Paper
+Round 322: Scissors Paper
+Round 323: Paper Scissors
+Round 324: Rock Paper
+Round 325: Paper Scissors
+Round 326: Paper Paper
+Round 327: Scissors Scissors
+Round 328: Paper Paper
+Round 329: Rock Scissors
+Round 330: Paper Scissors
+Round 331: Paper Paper
+Round 332: Scissors Paper
+Round 333: Paper Scissors
+Round 334: Rock Paper
+Round 335: Paper Scissors
+Round 336: Paper Paper
+Round 337: Scissors Scissors
+Round 338: Paper Paper
+Round 339: Rock Scissors
+Round 340: Paper Scissors
+Round 341: Paper Paper
+Round 342: Scissors Paper
+Round 343: Paper Scissors
+Round 344: Rock Paper
+Round 345: Paper Scissors
+Round 346: Paper Paper
+Round 347: Scissors Scissors
+Round 348: Paper Paper
+Round 349: Rock Scissors
+Round 350: Paper Scissors
+Round 351: Paper Paper
+Round 352: Scissors Paper
+Round 353: Paper Scissors
+Round 354: Rock Paper
+Round 355: Paper Scissors
+Round 356: Paper Paper
+Round 357: Scissors Scissors
+Round 358: Paper Paper
+Round 359: Rock Scissors
+Round 360: Paper Scissors
+Round 361: Paper Paper
+Round 362: Scissors Paper
+Round 363: Paper Scissors
+Round 364: Rock Paper
+Round 365: Paper Scissors
+Round 366: Paper Paper
+Round 367: Scissors Scissors
+Round 368: Paper Paper
+Round 369: Rock Scissors
+Round 370: Paper Scissors
+Round 371: Paper Paper
+Round 372: Scissors Paper
+Round 373: Paper Scissors
+Round 374: Rock Paper
+Round 375: Paper Scissors
+Round 376: Paper Paper
+Round 377: Scissors Scissors
+Round 378: Paper Paper
+Round 379: Rock Scissors
+Round 380: Paper Scissors
+Round 381: Paper Paper
+Round 382: Scissors Paper
+Round 383: Paper Scissors
+Round 384: Rock Paper
+Round 385: Paper Scissors
+Round 386: Paper Paper
+Round 387: Scissors Scissors
+Round 388: Paper Paper
+Round 389: Rock Scissors
+Round 390: Paper Scissors
+Round 391: Paper Paper
+Round 392: Scissors Paper
+Round 393: Paper Scissors
+Round 394: Rock Paper
+Round 395: Paper Scissors
+Round 396: Paper Paper
+Round 397: Scissors Scissors
+Round 398: Paper Paper
+Round 399: Rock Scissors
+Round 400: Paper Scissors
+Round 401: Paper Paper
+Round 402: Scissors Paper
+Round 403: Paper Scissors
+Round 404: Rock Paper
+Round 405: Paper Scissors
+Round 406: Paper Paper
+Round 407: Scissors Scissors
+Round 408: Paper Paper
+Round 409: Rock Scissors
+Round 410: Paper Scissors
+Round 411: Paper Paper
+Round 412: Scissors Paper
+Round 413: Paper Scissors
+Round 414: Rock Paper
+Round 415: Paper Scissors
+Round 416: Paper Paper
+Round 417: Scissors Scissors
+Round 418: Paper Paper
+Round 419: Rock Scissors
+Round 420: Paper Scissors
+Round 421: Paper Paper
+Round 422: Scissors Paper
+Round 423: Paper Scissors
+Round 424: Rock Paper
+Round 425: Paper Scissors
+Round 426: Paper Paper
+Round 427: Scissors Scissors
+Round 428: Paper Paper
+Round 429: Rock Scissors
+Round 430: Paper Scissors
+Round 431: Paper Paper
+Round 432: Scissors Paper
+Round 433: Paper Scissors
+Round 434: Rock Paper
+Round 435: Paper Scissors
+Round 436: Paper Paper
+Round 437: Scissors Scissors
+Round 438: Paper Paper
+Round 439: Rock Scissors
+Round 440: Paper Scissors
+Round 441: Paper Paper
+Round 442: Scissors Paper
+Round 443: Paper Scissors
+Round 444: Rock Paper
+Round 445: Paper Scissors
+Round 446: Paper Paper
+Round 447: Scissors Scissors
+Round 448: Paper Paper
+Round 449: Rock Scissors
+Round 450: Paper Scissors
+Round 451: Paper Paper
+Round 452: Scissors Paper
+Round 453: Paper Scissors
+Round 454: Rock Paper
+Round 455: Paper Scissors
+Round 456: Paper Paper
+Round 457: Scissors Scissors
+Round 458: Paper Paper
+Round 459: Rock Scissors
+Round 460: Paper Scissors
+Round 461: Paper Paper
+Round 462: Scissors Paper
+Round 463: Paper Scissors
+Round 464: Rock Paper
+Round 465: Paper Scissors
+Round 466: Paper Paper
+Round 467: Scissors Scissors
+Round 468: Paper Paper
+Round 469: Rock Scissors
+Round 470: Paper Scissors
+Round 471: Paper Paper
+Round 472: Scissors Paper
+Round 473: Paper Scissors
+Round 474: Rock Paper
+Round 475: Paper Scissors
+Round 476: Paper Paper
+Round 477: Scissors Scissors
+Round 478: Paper Paper
+Round 479: Rock Scissors
+Round 480: Paper Scissors
+Round 481: Paper Paper
+Round 482: Scissors Paper
+Round 483: Paper Scissors
+Round 484: Rock Paper
+Round 485: Paper Scissors
+Round 486: Paper Paper
+Round 487: Scissors Scissors
+Round 488: Paper Paper
+Round 489: Rock Scissors
+Round 490: Paper Scissors
+Round 491: Paper Paper
+Round 492: Scissors Paper
+Round 493: Paper Scissors
+Round 494: Rock Paper
+Round 495: Paper Scissors
+Round 496: Paper Paper
+Round 497: Scissors Scissors
+Round 498: Paper Paper
+Round 499: Rock Scissors
+Round 500: Paper Scissors
+Round 501: Paper Paper
+Round 502: Scissors Paper
+Round 503: Paper Scissors
+Round 504: Rock Paper
+Round 505: Paper Scissors
+Round 506: Paper Paper
+Round 507: Scissors Scissors
+Round 508: Paper Paper
+Round 509: Rock Scissors
+Round 510: Paper Scissors
+Round 511: Paper Paper
+Round 512: Scissors Paper
+Round 513: Paper Scissors
+Round 514: Rock Paper
+Round 515: Paper Scissors
+Round 516: Paper Paper
+Round 517: Scissors Scissors
+Round 518: Paper Paper
+Round 519: Rock Scissors
+Round 520: Paper Scissors
+Round 521: Paper Paper
+Round 522: Scissors Paper
+Round 523: Paper Scissors
+Round 524: Rock Paper
+Round 525: Paper Scissors
+Round 526: Paper Paper
+Round 527: Scissors Scissors
+Round 528: Paper Paper
+Round 529: Rock Scissors
+Round 530: Paper Scissors
+Round 531: Paper Paper
+Round 532: Scissors Paper
+Round 533: Paper Scissors
+Round 534: Rock Paper
+Round 535: Paper Scissors
+Round 536: Paper Paper
+Round 537: Scissors Scissors
+Round 538: Paper Paper
+Round 539: Rock Scissors
+Round 540: Paper Scissors
+Round 541: Paper Paper
+Round 542: Scissors Paper
+Round 543: Paper Scissors
+Round 544: Rock Paper
+Round 545: Paper Scissors
+Round 546: Paper Paper
+Round 547: Scissors Scissors
+Round 548: Paper Paper
+Round 549: Rock Scissors
+Round 550: Paper Scissors
+Round 551: Paper Paper
+Round 552: Scissors Paper
+Round 553: Paper Scissors
+Round 554: Rock Paper
+Round 555: Paper Scissors
+Round 556: Paper Paper
+Round 557: Scissors Scissors
+Round 558: Paper Paper
+Round 559: Rock Scissors
+Round 560: Paper Scissors
+Round 561: Paper Paper
+Round 562: Scissors Paper
+Round 563: Paper Scissors
+Round 564: Rock Paper
+Round 565: Paper Scissors
+Round 566: Paper Paper
+Round 567: Scissors Scissors
+Round 568: Paper Paper
+Round 569: Rock Scissors
+Round 570: Paper Scissors
+Round 571: Paper Paper
+Round 572: Scissors Paper
+Round 573: Paper Scissors
+Round 574: Rock Paper
+Round 575: Paper Scissors
+Round 576: Paper Paper
+Round 577: Scissors Scissors
+Round 578: Paper Paper
+Round 579: Rock Scissors
+Round 580: Paper Scissors
+Round 581: Paper Paper
+Round 582: Scissors Paper
+Round 583: Paper Scissors
+Round 584: Rock Paper
+Round 585: Paper Scissors
+Round 586: Paper Paper
+Round 587: Scissors Scissors
+Round 588: Paper Paper
+Round 589: Rock Scissors
+Round 590: Paper Scissors
+Round 591: Paper Paper
+Round 592: Scissors Paper
+Round 593: Paper Scissors
+Round 594: Rock Paper
+Round 595: Paper Scissors
+Round 596: Paper Paper
+Round 597: Scissors Scissors
+Round 598: Paper Paper
+Round 599: Rock Scissors
+Round 600: Paper Scissors
+Round 601: Paper Paper
+Round 602: Scissors Paper
+Round 603: Paper Scissors
+Round 604: Rock Paper
+Round 605: Paper Scissors
+Round 606: Paper Paper
+Round 607: Scissors Scissors
+Round 608: Paper Paper
+Round 609: Rock Scissors
+Round 610: Paper Scissors
+Round 611: Paper Paper
+Round 612: Scissors Paper
+Round 613: Paper Scissors
+Round 614: Rock Paper
+Round 615: Paper Scissors
+Round 616: Paper Paper
+Round 617: Scissors Scissors
+Round 618: Paper Paper
+Round 619: Rock Scissors
+Round 620: Paper Scissors
+Round 621: Paper Paper
+Round 622: Scissors Paper
+Round 623: Paper Scissors
+Round 624: Rock Paper
+Round 625: Paper Scissors
+Round 626: Paper Paper
+Round 627: Scissors Scissors
+Round 628: Paper Paper
+Round 629: Rock Scissors
+Round 630: Paper Scissors
+Round 631: Paper Paper
+Round 632: Scissors Paper
+Round 633: Paper Scissors
+Round 634: Rock Paper
+Round 635: Paper Scissors
+Round 636: Paper Paper
+Round 637: Scissors Scissors
+Round 638: Paper Paper
+Round 639: Rock Scissors
+Round 640: Paper Scissors
+Round 641: Paper Paper
+Round 642: Scissors Paper
+Round 643: Paper Scissors
+Round 644: Rock Paper
+Round 645: Paper Scissors
+Round 646: Paper Paper
+Round 647: Scissors Scissors
+Round 648: Paper Paper
+Round 649: Rock Scissors
+Round 650: Paper Scissors
+Round 651: Paper Paper
+Round 652: Scissors Paper
+Round 653: Paper Scissors
+Round 654: Rock Paper
+Round 655: Paper Scissors
+Round 656: Paper Paper
+Round 657: Scissors Scissors
+Round 658: Paper Paper
+Round 659: Rock Scissors
+Round 660: Paper Scissors
+Round 661: Paper Paper
+Round 662: Scissors Paper
+Round 663: Paper Scissors
+Round 664: Rock Paper
+Round 665: Paper Scissors
+Round 666: Paper Paper
+Round 667: Scissors Scissors
+Round 668: Paper Paper
+Round 669: Rock Scissors
+Round 670: Paper Scissors
+Round 671: Paper Paper
+Round 672: Scissors Paper
+Round 673: Paper Scissors
+Round 674: Rock Paper
+Round 675: Paper Scissors
+Round 676: Paper Paper
+Round 677: Scissors Scissors
+Round 678: Paper Paper
+Round 679: Rock Scissors
+Round 680: Paper Scissors
+Round 681: Paper Paper
+Round 682: Scissors Paper
+Round 683: Paper Scissors
+Round 684: Rock Paper
+Round 685: Paper Scissors
+Round 686: Paper Paper
+Round 687: Scissors Scissors
+Round 688: Paper Paper
+Round 689: Rock Scissors
+Round 690: Paper Scissors
+Round 691: Paper Paper
+Round 692: Scissors Paper
+Round 693: Paper Scissors
+Round 694: Rock Paper
+Round 695: Paper Scissors
+Round 696: Paper Paper
+Round 697: Scissors Scissors
+Round 698: Paper Paper
+Round 699: Rock Scissors
+Round 700: Paper Scissors
+Round 701: Paper Paper
+Round 702: Scissors Paper
+Round 703: Paper Scissors
+Round 704: Rock Paper
+Round 705: Paper Scissors
+Round 706: Paper Paper
+Round 707: Scissors Scissors
+Round 708: Paper Paper
+Round 709: Rock Scissors
+Round 710: Paper Scissors
+Round 711: Paper Paper
+Round 712: Scissors Paper
+Round 713: Paper Scissors
+Round 714: Rock Paper
+Round 715: Paper Scissors
+Round 716: Paper Paper
+Round 717: Scissors Scissors
+Round 718: Paper Paper
+Round 719: Rock Scissors
+Round 720: Paper Scissors
+Round 721: Paper Paper
+Round 722: Scissors Paper
+Round 723: Paper Scissors
+Round 724: Rock Paper
+Round 725: Paper Scissors
+Round 726: Paper Paper
+Round 727: Scissors Scissors
+Round 728: Paper Paper
+Round 729: Rock Scissors
+Round 730: Paper Scissors
+Round 731: Paper Paper
+Round 732: Scissors Paper
+Round 733: Paper Scissors
+Round 734: Rock Paper
+Round 735: Paper Scissors
+Round 736: Paper Paper
+Round 737: Scissors Scissors
+Round 738: Paper Paper
+Round 739: Rock Scissors
+Round 740: Paper Scissors
+Round 741: Paper Paper
+Round 742: Scissors Paper
+Round 743: Paper Scissors
+Round 744: Rock Paper
+Round 745: Paper Scissors
+Round 746: Paper Paper
+Round 747: Scissors Scissors
+Round 748: Paper Paper
+Round 749: Rock Scissors
+Round 750: Paper Scissors
+Round 751: Paper Paper
+Round 752: Scissors Paper
+Round 753: Paper Scissors
+Round 754: Rock Paper
+Round 755: Paper Scissors
+Round 756: Paper Paper
+Round 757: Scissors Scissors
+Round 758: Paper Paper
+Round 759: Rock Scissors
+Round 760: Paper Scissors
+Round 761: Paper Paper
+Round 762: Scissors Paper
+Round 763: Paper Scissors
+Round 764: Rock Paper
+Round 765: Paper Scissors
+Round 766: Paper Paper
+Round 767: Scissors Scissors
+Round 768: Paper Paper
+Round 769: Rock Scissors
+Round 770: Paper Scissors
+Round 771: Paper Paper
+Round 772: Scissors Paper
+Round 773: Paper Scissors
+Round 774: Rock Paper
+Round 775: Paper Scissors
+Round 776: Paper Paper
+Round 777: Scissors Scissors
+Round 778: Paper Paper
+Round 779: Rock Scissors
+Round 780: Paper Scissors
+Round 781: Paper Paper
+Round 782: Scissors Paper
+Round 783: Paper Scissors
+Round 784: Rock Paper
+Round 785: Paper Scissors
+Round 786: Paper Paper
+Round 787: Scissors Scissors
+Round 788: Paper Paper
+Round 789: Rock Scissors
+Round 790: Paper Scissors
+Round 791: Paper Paper
+Round 792: Scissors Paper
+Round 793: Paper Scissors
+Round 794: Rock Paper
+Round 795: Paper Scissors
+Round 796: Paper Paper
+Round 797: Scissors Scissors
+Round 798: Paper Paper
+Round 799: Rock Scissors
+Round 800: Paper Scissors
+Round 801: Paper Paper
+Round 802: Scissors Paper
+Round 803: Paper Scissors
+Round 804: Rock Paper
+Round 805: Paper Scissors
+Round 806: Paper Paper
+Round 807: Scissors Scissors
+Round 808: Paper Paper
+Round 809: Rock Scissors
+Round 810: Paper Scissors
+Round 811: Paper Paper
+Round 812: Scissors Paper
+Round 813: Paper Scissors
+Round 814: Rock Paper
+Round 815: Paper Scissors
+Round 816: Paper Paper
+Round 817: Scissors Scissors
+Round 818: Paper Paper
+Round 819: Rock Scissors
+Round 820: Paper Scissors
+Round 821: Paper Paper
+Round 822: Scissors Paper
+Round 823: Paper Scissors
+Round 824: Rock Paper
+Round 825: Paper Scissors
+Round 826: Paper Paper
+Round 827: Scissors Scissors
+Round 828: Paper Paper
+Round 829: Rock Scissors
+Round 830: Paper Scissors
+Round 831: Paper Paper
+Round 832: Scissors Paper
+Round 833: Paper Scissors
+Round 834: Rock Paper
+Round 835: Paper Scissors
+Round 836: Paper Paper
+Round 837: Scissors Scissors
+Round 838: Paper
+
+================================================================================
+End of Report
+================================================================================
