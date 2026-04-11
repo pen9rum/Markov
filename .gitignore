@@ -53,6 +53,7 @@ parsed_output/
 api_keys.txt
 plots/
 analysis_results/
-
+exp2(generation_blind)/
+exp1(strategy)/
 # JSON files
 *.json

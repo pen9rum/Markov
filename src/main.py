@@ -9,7 +9,7 @@ from core.game import Game
 from core.players import PLAYER_CONFIGS
 
 # 分析结果保存目录
-ANALYSIS_OUTPUT_DIR = "analysis_results"
+ANALYSIS_OUTPUT_DIR = os.path.join("generation_blind", "analysis_results")
 
 
 def print_available_players():

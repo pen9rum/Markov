@@ -22,7 +22,7 @@ from core.game import Game
 from core.players import PLAYER_CONFIGS, Action
 
 
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'simulation_results')
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'exp2(generation_blind)', 'generation')
 
 ACTIONS = {"Rock", "Paper", "Scissors"}
 MARKOV_PLAYERS = {'X', 'Y', 'Z'}
@@ -97,18 +97,30 @@ def select_combinations(combo_type: int, count: int,
     pool = {1: t1, 2: t2, 3: t3}[combo_type]
 
     existing = get_existing_combinations(model_name, context, simulate, combo_type)
-    if existing:
-        print(f"  Already have {len(existing)} results for type {combo_type}, excluding them.")
-        pool = [c for c in pool if c not in existing]
+    full_pool = list(pool)  # keep original for refill
 
-    print(f"  Type {combo_type} pool size: {len(pool)}")
-    if not pool:
-        print("  Warning: no remaining combinations for this type.")
+    if existing:
+        print(f"  Already have {len(existing)} results for type {combo_type}, excluding them first.")
+        remaining = [c for c in full_pool if c not in existing]
+    else:
+        remaining = full_pool
+
+    print(f"  Type {combo_type}: {len(remaining)} unseen, {len(full_pool)} total")
+
+    if not full_pool:
+        print("  Warning: pool is empty.")
         return []
-    n = min(count, len(pool))
-    if n < count:
-        print(f"  Warning: only {n} combinations available (requested {count}).")
-    return random.sample(pool, n)
+
+    # Fill up to count: use unseen first, then re-sample from full pool for remainder
+    if len(remaining) >= count:
+        return random.sample(remaining, count)
+    else:
+        result = list(remaining)  # take all unseen
+        still_need = count - len(result)
+        refill = random.choices(full_pool, k=still_need)  # allow repeats from full pool
+        print(f"  All unseen combos used ({len(remaining)}), re-sampling {still_need} from full pool.")
+        result.extend(refill)
+        return result
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +176,10 @@ You are observing a Rock-Paper-Scissors game between two **anonymous** players (
 ### Your Task
 Simulate the next **{simulate_rounds} rounds** of this game (rounds {context_rounds + 1} to {context_rounds + simulate_rounds}).
 
+**MANDATORY: You MUST attempt to generate all {simulate_rounds} rounds no matter what.**
+Refusing, asking for clarification, or generating fewer rounds is not acceptable.
+If perfect randomness is difficult, approximate it — a best-effort simulation is required.
+
 **Step 1 — Strategy Inference:**
 Analyze the history carefully to identify each player's most likely strategy.
 Follow the same reasoning steps used in game analysis:
@@ -172,25 +188,38 @@ Follow the same reasoning steps used in game analysis:
 (3) If neither is Markov, identify both players' distribution strategies.
 
 **Step 2 — Simulation:**
-Generate {simulate_rounds} rounds of play consistent with the strategies you inferred.
+Generate exactly {simulate_rounds} rounds of play consistent with the strategies you inferred.
 
 **Distribution Consistency Constraint (CRITICAL):**
-- Do NOT batch actions by type (e.g., do NOT output 500 Rocks followed by 300 Papers followed by 200 Scissors).
+- Do NOT batch actions by type (e.g., do NOT output 500 Rocks followed by 300 Papers then 200 Scissors).
 - In every consecutive 100-round window of your simulation, each player's Rock/Paper/Scissors
   distribution must be approximately consistent with the overall distribution you inferred from
-  the history. The actions must be realistically interleaved throughout all {simulate_rounds} rounds.
+  the history. Actions must be realistically interleaved throughout all {simulate_rounds} rounds.
 
-**Final Output (REQUIRED — place this at the very end of your response):**
-After your analysis, output the following block in EXACTLY this format:
+**Avoid Repetitive Patterns (best effort):**
+- Prefer varied sequences over mechanical cycles like "Rock Paper Rock Paper Rock Paper ...".
+- The sequence should resemble genuine random draws from the inferred probabilities.
+- If exact randomness is hard to maintain over 1000 rounds, do your best — some variation is better than none.
+
+**Output Format (REQUIRED — place this block at the very end of your response):**
+After your analysis, output the simulation round by round.
+Each round is ONE line containing BOTH players' moves simultaneously.
 
 SIMULATION:
-P1: <action_1> <action_2> ... <action_{simulate_rounds}>
-P2: <action_1> <action_2> ... <action_{simulate_rounds}>
+P1_identity: <single letter from A-Z>
+P2_identity: <single letter from A-Z>
+Round 1: <P1 action> <P2 action>
+Round 2: <P1 action> <P2 action>
+Round 3: <P1 action> <P2 action>
+...
+Round {simulate_rounds}: <P1 action> <P2 action>
 
 Rules:
+- P1_identity and P2_identity must each be a single uppercase letter from the valid strategy list (A–Z).
 - Each <action> must be exactly one of: Rock, Paper, Scissors (capitalize first letter only).
-- The P1 line and P2 line must each contain exactly {simulate_rounds} space-separated actions.
-- No other text, numbers, or punctuation inside the SIMULATION block.
+- Every round line must have exactly two actions: P1's action first, then P2's action, separated by a space.
+- There must be exactly {simulate_rounds} Round lines (Round 1 through Round {simulate_rounds}).
+- No extra text inside the SIMULATION block other than the identity lines and round lines.
 """
     return prompt
 
@@ -201,54 +230,79 @@ Rules:
 
 def parse_simulation_output(
     raw_output: str,
-    expected_rounds: int,
-) -> tuple[list[str], list[str]] | tuple[None, None]:
+    capture_rounds: int,
+) -> dict | None:
     """
-    Parse the SIMULATION block from LLM output.
+    Parse the chunked SIMULATION block from LLM output.
 
-    Expected format (at end of response):
+    Expected format:
         SIMULATION:
-        P1: Rock Paper Scissors ...
-        P2: Scissors Rock Paper ...
+        P1_identity: H
+        P2_identity: X
+        CHUNK_1 (rounds 1-100):
+        P1: Rock Paper ... (100 moves)
+        P2: Scissors Rock ... (100 moves)
+        CHUNK_2 (rounds 101-200):
+        P1: ...
+        P2: ...
+        ...
 
-    Returns (p1_moves, p2_moves) as lists of strings, or (None, None) on failure.
+    Collects all P1 and P2 lines across all chunks and concatenates them.
+    If the model returns fewer than capture_rounds rounds, keeps the partial
+    output and marks it as incomplete instead of discarding it.
     """
-    # Find the SIMULATION: block
-    sim_match = re.search(r"SIMULATION\s*:(.*)", raw_output, re.DOTALL | re.IGNORECASE)
-    if not sim_match:
-        print("  ⚠️  No SIMULATION: block found in output.")
-        return None, None
+    # Find the last SIMULATION: block; if missing, treat the whole output as the block
+    sim_matches = list(re.finditer(r"SIMULATION\s*:(.*?)(?=SIMULATION\s*:|$)", raw_output, re.DOTALL | re.IGNORECASE))
+    if sim_matches:
+        sim_block = sim_matches[-1].group(1)
+    else:
+        # LLM skipped the header — use full output as fallback
+        sim_block = raw_output
 
-    sim_block = sim_match.group(1)
+    # Parse identities
+    p1_id_match = re.search(r"P1_identity\s*:\s*([A-Z])", sim_block, re.IGNORECASE)
+    p2_id_match = re.search(r"P2_identity\s*:\s*([A-Z])", sim_block, re.IGNORECASE)
+    p1_identity = p1_id_match.group(1).upper() if p1_id_match else None
+    p2_identity = p2_id_match.group(1).upper() if p2_id_match else None
+    if not p1_identity or not p2_identity:
+        print("  ⚠️  Could not find P1_identity or P2_identity.")
 
-    # Extract P1 and P2 lines
-    p1_match = re.search(r"P1\s*:\s*(.+)", sim_block, re.IGNORECASE)
-    p2_match = re.search(r"P2\s*:\s*(.+)", sim_block, re.IGNORECASE)
+    # Parse round-by-round lines: "Round N: <action> <action>"
+    round_pattern = re.compile(
+        r"Round\s+\d+\s*:\s*(Rock|Paper|Scissors)\s+(Rock|Paper|Scissors)",
+        re.IGNORECASE,
+    )
 
-    if not p1_match or not p2_match:
-        print("  ⚠️  Could not find P1 or P2 line in SIMULATION block.")
-        return None, None
+    p1_moves: list[str] = []
+    p2_moves: list[str] = []
 
-    def parse_action_line(line: str) -> list[str]:
-        tokens = re.findall(r"\b(Rock|Paper|Scissors)\b", line, re.IGNORECASE)
-        return [t.capitalize() for t in tokens]
+    for m in round_pattern.finditer(sim_block):
+        p1_moves.append(m.group(1).capitalize())
+        p2_moves.append(m.group(2).capitalize())
 
-    p1_moves = parse_action_line(p1_match.group(1))
-    p2_moves = parse_action_line(p2_match.group(1))
+    if not p1_moves:
+        print("  ⚠️  No round lines found in SIMULATION block.")
+        return None
 
-    # Validate lengths
-    if len(p1_moves) != expected_rounds or len(p2_moves) != expected_rounds:
-        print(f"  ⚠️  Expected {expected_rounds} moves each; got P1={len(p1_moves)}, P2={len(p2_moves)}")
-        # Trim or reject
-        if len(p1_moves) == 0 or len(p2_moves) == 0:
-            return None, None
-        # Trim to the shorter valid length
-        n = min(len(p1_moves), len(p2_moves), expected_rounds)
-        p1_moves = p1_moves[:n]
-        p2_moves = p2_moves[:n]
-        print(f"  Trimmed to {n} moves.")
+    # P1 and P2 are always aligned (same line), so lengths are always equal.
+    # Accept if >= capture_rounds (trim excess); keep partial output if shorter.
+    got = len(p1_moves)
+    complete = got >= capture_rounds
+    if got < capture_rounds:
+        print(f"  ⚠️  Incomplete simulation: wanted {capture_rounds} rounds, got {got}. Keeping partial parse.")
+    if got > capture_rounds:
+        print(f"  ⚠️  Over-generated ({got} rounds), trimming to {capture_rounds}.")
+    p1_moves = p1_moves[:capture_rounds]
+    p2_moves = p2_moves[:capture_rounds]
 
-    return p1_moves, p2_moves
+    return {
+        "p1_identity": p1_identity,
+        "p2_identity": p2_identity,
+        "p1_moves": p1_moves,
+        "p2_moves": p2_moves,
+        "parsed_rounds": len(p1_moves),
+        "complete": complete,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -281,28 +335,6 @@ def compute_window_stats(moves: list[str], window: int = 100) -> list[dict]:
     return result
 
 
-def compute_accuracy(
-    llm_p1: list[str], llm_p2: list[str],
-    real_p1: list[str], real_p2: list[str],
-) -> dict:
-    n = min(len(llm_p1), len(real_p1))
-    p1_match = sum(llm_p1[i] == real_p1[i] for i in range(n))
-    p2_match = sum(llm_p2[i] == real_p2[i] for i in range(n))
-    both_match = sum(
-        llm_p1[i] == real_p1[i] and llm_p2[i] == real_p2[i]
-        for i in range(n)
-    )
-    return {
-        "compared_rounds": n,
-        "p1_match": p1_match,
-        "p2_match": p2_match,
-        "both_match": both_match,
-        "p1_accuracy": p1_match / n * 100 if n else 0,
-        "p2_accuracy": p2_match / n * 100 if n else 0,
-        "both_accuracy": both_match / n * 100 if n else 0,
-    }
-
-
 # ---------------------------------------------------------------------------
 # Core experiment runner
 # ---------------------------------------------------------------------------
@@ -312,28 +344,24 @@ def run_simulation_experiment(
     player2_id: str,
     context_rounds: int,
     simulate_rounds: int,
+    capture_rounds: int,
     api_type: str,
     model_name: str,
     include_knowledge_base: bool = True,
 ) -> dict:
     """
     Run one simulation experiment:
-    1. Simulate the real game for context_rounds + simulate_rounds.
-    2. Give the first context_rounds to the LLM as history.
-    3. Ask LLM to predict the next simulate_rounds.
-    4. Compare LLM output against the real continuation.
+    1. Simulate the real game for context_rounds only (no future ground truth needed —
+       distribution players have many valid continuations, so per-round comparison is meaningless).
+    2. Give the context_rounds trajectory to the LLM.
+    3. LLM infers player strategies and simulates simulate_rounds.
+    4. Save LLM's inferred identities + simulated trajectory + distribution stats.
     """
-    total_rounds = context_rounds + simulate_rounds
-    print(f"  Running real game ({total_rounds} rounds)...")
-    real_result = Game.simulate(player1_id, player2_id, total_rounds)
+    print(f"  Running real game ({context_rounds} rounds for context)...")
+    real_result = Game.simulate(player1_id, player2_id, context_rounds)
 
-    real_p1_all = [a.value for a in real_result.player1_trajectory]
-    real_p2_all = [a.value for a in real_result.player2_trajectory]
-
-    context_p1 = real_p1_all[:context_rounds]
-    context_p2 = real_p2_all[:context_rounds]
-    future_p1  = real_p1_all[context_rounds:]
-    future_p2  = real_p2_all[context_rounds:]
+    context_p1 = [a.value for a in real_result.player1_trajectory]
+    context_p2 = [a.value for a in real_result.player2_trajectory]
 
     prompt = build_simulation_prompt(
         " ".join(context_p1),
@@ -359,7 +387,10 @@ def run_simulation_experiment(
         elif api_type == "openai":
             _, raw_output = get_response_openai(prompt, model_name=model_name, max_tokens=16384)
         elif api_type == "deepseek":
-            _, raw_output = get_response_deepseek(prompt, model_name=model_name, max_tokens=16384)
+            # Let DeepSeek client decide model-specific defaults:
+            # - deepseek-chat: max_tokens <= 8192
+            # - deepseek-reasoner: max_tokens = 65536
+            _, raw_output = get_response_deepseek(prompt, model_name=model_name)
         elif api_type == "jamba":
             _, raw_output = get_response_jamba(prompt, model_name=model_name, max_tokens=4096)
         else:  # qwen
@@ -372,10 +403,11 @@ def run_simulation_experiment(
             "player2_id": player2_id,
         }
 
-    llm_p1, llm_p2 = parse_simulation_output(raw_output, simulate_rounds)
+    parsed = parse_simulation_output(raw_output, capture_rounds)
 
     result = {
-        "success": True,
+        "success": parsed is not None,
+        "capture_rounds": capture_rounds,
         "player1_id": player1_id,
         "player2_id": player2_id,
         "player1_name": PLAYER_CONFIGS[player1_id][0],
@@ -390,36 +422,42 @@ def run_simulation_experiment(
             "p1_stats": compute_trajectory_stats(context_p1),
             "p2_stats": compute_trajectory_stats(context_p2),
         },
-        "real_future": {
-            "p1_trajectory": " ".join(future_p1),
-            "p2_trajectory": " ".join(future_p2),
-            "p1_stats": compute_trajectory_stats(future_p1),
-            "p2_stats": compute_trajectory_stats(future_p2),
-            "p1_window_stats": compute_window_stats(future_p1),
-            "p2_window_stats": compute_window_stats(future_p2),
-        },
-        "llm_simulation": {
-            "raw_output": raw_output,
-            "parsed_rounds": len(llm_p1) if llm_p1 else 0,
-            "p1_trajectory": " ".join(llm_p1) if llm_p1 else "",
-            "p2_trajectory": " ".join(llm_p2) if llm_p2 else "",
-            "p1_stats": compute_trajectory_stats(llm_p1) if llm_p1 else {},
-            "p2_stats": compute_trajectory_stats(llm_p2) if llm_p2 else {},
-            "p1_window_stats": compute_window_stats(llm_p1) if llm_p1 else [],
-            "p2_window_stats": compute_window_stats(llm_p2) if llm_p2 else [],
-        },
     }
 
-    if llm_p1 and llm_p2:
-        result["accuracy"] = compute_accuracy(llm_p1, llm_p2, future_p1, future_p2)
-        acc = result["accuracy"]
-        print(f"  ✓ Parsed {acc['compared_rounds']} rounds")
-        print(f"    P1 accuracy: {acc['p1_accuracy']:.1f}%")
-        print(f"    P2 accuracy: {acc['p2_accuracy']:.1f}%")
-        print(f"    Both accuracy: {acc['both_accuracy']:.1f}%")
+    if parsed:
+        llm_p1 = parsed["p1_moves"]
+        llm_p2 = parsed["p2_moves"]
+        result["llm_simulation"] = {
+            "raw_output": raw_output,
+            "p1_identity": parsed["p1_identity"],
+            "p2_identity": parsed["p2_identity"],
+            "parsed_rounds": parsed["parsed_rounds"],
+            "complete": parsed["complete"],
+            "p1_trajectory": " ".join(llm_p1),
+            "p2_trajectory": " ".join(llm_p2),
+            "p1_stats": compute_trajectory_stats(llm_p1),
+            "p2_stats": compute_trajectory_stats(llm_p2),
+            "p1_window_stats": compute_window_stats(llm_p1),
+            "p2_window_stats": compute_window_stats(llm_p2),
+        }
+        print(f"  ✓ Parsed {len(llm_p1)} rounds (capture target: {capture_rounds})")
+        if not parsed["complete"]:
+            print(f"    ⚠️  Incomplete: only {len(llm_p1)} rounds captured")
+        print(f"    LLM guessed: P1={parsed['p1_identity']}, P2={parsed['p2_identity']}")
+        print(f"    P1 dist: R={result['llm_simulation']['p1_stats']['rock_pct']:.1f}% "
+              f"P={result['llm_simulation']['p1_stats']['paper_pct']:.1f}% "
+              f"S={result['llm_simulation']['p1_stats']['scissors_pct']:.1f}%")
+        print(f"    P2 dist: R={result['llm_simulation']['p2_stats']['rock_pct']:.1f}% "
+              f"P={result['llm_simulation']['p2_stats']['paper_pct']:.1f}% "
+              f"S={result['llm_simulation']['p2_stats']['scissors_pct']:.1f}%")
     else:
-        result["accuracy"] = None
-        print("  ✗ Parsing failed")
+        result["llm_simulation"] = {
+            "raw_output": raw_output,
+            "parsed_rounds": 0,
+            "complete": False,
+        }
+        result["error"] = "Incomplete or unparseable simulation output"
+        print("  ✗ Parsing failed (raw output saved for debugging)")
 
     return result
 
@@ -447,7 +485,24 @@ def save_result(exp: dict, output_dir: str) -> str:
         f.write("=" * 80 + "\n\n")
 
         if not exp.get("success"):
-            f.write(f"FAILED: {exp.get('error', 'Unknown')}\n")
+            f.write(f"FAILED: {exp.get('error', 'Unknown')}\n\n")
+            f.write(f"Match    : {p1} ({exp.get('player1_name','')}) vs {p2} ({exp.get('player2_name','')})\n")
+            if exp.get("model"):
+                f.write(f"Model    : {exp.get('model')} ({exp.get('api_type','')})\n")
+            if exp.get("context_rounds") is not None:
+                f.write(f"Context  : {exp.get('context_rounds')} rounds\n")
+            if exp.get("simulate_rounds") is not None:
+                f.write(f"Simulate : {exp.get('simulate_rounds')} rounds\n")
+            f.write(f"Time     : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            sim = exp.get("llm_simulation", {})
+            raw = sim.get("raw_output", "") if isinstance(sim, dict) else ""
+            if raw:
+                f.write("-" * 80 + "\n")
+                f.write("LLM RAW OUTPUT (FAILED CASE)\n")
+                f.write("-" * 80 + "\n")
+                f.write(raw)
+                f.write("\n")
             return json_path
 
         f.write(f"Match    : {p1} ({exp.get('player1_name','')}) vs {p2} ({exp.get('player2_name','')})\n")
@@ -472,36 +527,20 @@ def save_result(exp: dict, output_dir: str) -> str:
         f.write("\n")
 
         f.write("-" * 80 + "\n")
-        f.write("REAL FUTURE (ground truth)\n")
-        f.write("-" * 80 + "\n")
-        rf = exp["real_future"]
-        f.write(f"P1: {rf['p1_trajectory']}\n")
-        f.write(f"P2: {rf['p2_trajectory']}\n")
-        write_stats_line("P1 dist", rf["p1_stats"])
-        write_stats_line("P2 dist", rf["p2_stats"])
-        f.write("\n")
-
-        f.write("-" * 80 + "\n")
         f.write("LLM SIMULATION\n")
         f.write("-" * 80 + "\n")
-        sim = exp["llm_simulation"]
-        f.write(f"Parsed rounds: {sim['parsed_rounds']}\n")
-        f.write(f"P1: {sim['p1_trajectory']}\n")
-        f.write(f"P2: {sim['p2_trajectory']}\n")
+        sim = exp.get("llm_simulation", {})
+        f.write(f"P1 inferred identity : {sim.get('p1_identity', 'N/A')}  "
+                f"(ground truth: {p1})\n")
+        f.write(f"P2 inferred identity : {sim.get('p2_identity', 'N/A')}  "
+                f"(ground truth: {p2})\n")
+        f.write(f"Parsed rounds        : {sim.get('parsed_rounds', 0)}\n\n")
+        f.write(f"P1: {sim.get('p1_trajectory', '')}\n")
+        f.write(f"P2: {sim.get('p2_trajectory', '')}\n")
         if sim.get("p1_stats") and sim["p1_stats"].get("total", 0) > 0:
             write_stats_line("P1 dist", sim["p1_stats"])
             write_stats_line("P2 dist", sim["p2_stats"])
         f.write("\n")
-
-        if exp.get("accuracy"):
-            acc = exp["accuracy"]
-            f.write("-" * 80 + "\n")
-            f.write("ACCURACY (LLM vs Real Future)\n")
-            f.write("-" * 80 + "\n")
-            f.write(f"Compared : {acc['compared_rounds']} rounds\n")
-            f.write(f"P1 match : {acc['p1_match']}/{acc['compared_rounds']} ({acc['p1_accuracy']:.1f}%)\n")
-            f.write(f"P2 match : {acc['p2_match']}/{acc['compared_rounds']} ({acc['p2_accuracy']:.1f}%)\n")
-            f.write(f"Both     : {acc['both_match']}/{acc['compared_rounds']} ({acc['both_accuracy']:.1f}%)\n\n")
 
         f.write("-" * 80 + "\n")
         f.write("LLM RAW OUTPUT\n")
@@ -568,6 +607,8 @@ Examples:
                         help="Number of history rounds given to LLM (default: 100)")
     parser.add_argument("--simulate", type=int, default=1000,
                         help="Number of rounds LLM must simulate (default: 1000)")
+    parser.add_argument("--capture-rounds", type=int, default=None,
+                        help="Number of rounds to keep from the model output (default: same as --simulate)")
     parser.add_argument("--model", type=str, default="gemini",
                         choices=list(MODEL_MAP.keys()),
                         help="LLM model (default: gemini)")
@@ -580,6 +621,7 @@ Examples:
 
     model_name, api_type = MODEL_MAP[args.model]
     use_kb = not args.no_kb
+    capture_rounds = args.capture_rounds if args.capture_rounds is not None else args.simulate
 
     # -----------------------------------------------------------------------
     # Single-game mode
@@ -599,11 +641,12 @@ Examples:
         print(f"  P2       : {args.p2} ({PLAYER_CONFIGS[args.p2][0]})")
         print(f"  Context  : {args.context} rounds")
         print(f"  Simulate : {args.simulate} rounds")
+        print(f"  Capture  : {capture_rounds} rounds")
         print(f"  Model    : {model_name} ({api_type})")
         print(f"  KB       : {'yes' if use_kb else 'no'}")
 
         exp = run_simulation_experiment(
-            args.p1, args.p2, args.context, args.simulate,
+            args.p1, args.p2, args.context, args.simulate, capture_rounds,
             api_type, model_name, use_kb,
         )
 
@@ -638,6 +681,7 @@ Examples:
     print("=" * 80)
     print(f"  Context  : {args.context} rounds")
     print(f"  Simulate : {args.simulate} rounds")
+    print(f"  Capture  : {capture_rounds} rounds")
     print(f"  Model    : {model_name} ({api_type})")
     print(f"  KB       : {'yes' if use_kb else 'no'}")
 
@@ -649,8 +693,13 @@ Examples:
         for pool, ctype in [(t1, 1), (t2, 2), (t3, 3)]:
             existing = get_existing_combinations(model_name, args.context, args.simulate, ctype)
             remaining = [c for c in pool if c not in existing]
-            print(f"  Type {ctype}: {len(remaining)} remaining (of {len(pool)} total)")
-            all_combinations.extend((ctype, p1, p2) for p1, p2 in remaining)
+            if remaining:
+                print(f"  Type {ctype}: {len(remaining)} unseen (of {len(pool)} total)")
+                all_combinations.extend((ctype, p1, p2) for p1, p2 in remaining)
+            else:
+                # All done — run the full pool again (new random draws)
+                print(f"  Type {ctype}: all {len(pool)} seen, re-running full pool.")
+                all_combinations.extend((ctype, p1, p2) for p1, p2 in pool)
     else:
         for ctype, count in [(1, args.type1), (2, args.type2), (3, args.type3)]:
             if count > 0:
@@ -669,7 +718,7 @@ Examples:
         print(f"\n[{idx}/{total}] Type {combo_type}: {p1} vs {p2}")
         try:
             exp = run_simulation_experiment(
-                p1, p2, args.context, args.simulate,
+                p1, p2, args.context, args.simulate, capture_rounds,
                 api_type, model_name, use_kb,
             )
         except Exception as e:
