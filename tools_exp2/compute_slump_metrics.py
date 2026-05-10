@@ -328,6 +328,34 @@ def process_file(path):
     return rows
 
 
+TYPE_FOLDER_MAP = {'type1_non_markov': 1, 'type2_markov_p1': 2, 'type3_markov_p2': 3}
+MAX_FILES_PER_GROUP = 60
+
+
+def extract_model_combo_from_path(path, root):
+    rel = os.path.relpath(path, root).replace('\\', '/')
+    parts = rel.split('/')
+    model = parts[0] if len(parts) > 0 else ''
+    type_folder = parts[2] if len(parts) > 2 else ''
+    combo = TYPE_FOLDER_MAP.get(type_folder, 0)
+    return model, combo
+
+
+def collect_files_capped(root, max_per_group=MAX_FILES_PER_GROUP):
+    groups = {}
+    for dirpath, _, filenames in os.walk(root):
+        for fn in sorted(filenames):
+            if not fn.endswith('.json'):
+                continue
+            p = os.path.join(dirpath, fn)
+            key = extract_model_combo_from_path(p, root)
+            groups.setdefault(key, []).append(p)
+    result = []
+    for files in groups.values():
+        result.extend(sorted(files)[:max_per_group])
+    return result
+
+
 def main():
     root = os.path.join(os.getcwd(), 'exp2(generation_blind)', 'generation')
     out_path = os.path.join(os.getcwd(), 'exp2(generation_blind)', 'analysis_results', 'slump_metrics.csv')
@@ -342,25 +370,22 @@ def main():
         'window_rock_pct', 'window_paper_pct', 'window_scissors_pct',
     ]
 
+    files = collect_files_capped(root)
     rows_written = 0
     with open(out_path, 'w', newline='', encoding='utf-8') as csvf:
         writer = csv.DictWriter(csvf, fieldnames=fieldnames)
         writer.writeheader()
 
-        for dirpath, dirnames, filenames in os.walk(root):
-            for fn in filenames:
-                if not fn.endswith('.json'):
-                    continue
-                p = os.path.join(dirpath, fn)
-                try:
-                    rows = process_file(p)
-                except Exception as e:
-                    print(f"WARN: failed to process {p}: {e}")
-                    continue
+        for p in files:
+            try:
+                rows = process_file(p)
+            except Exception as e:
+                print(f"WARN: failed to process {p}: {e}")
+                continue
 
-                for r in rows:
-                    writer.writerow(r)
-                    rows_written += 1
+            for r in rows:
+                writer.writerow(r)
+                rows_written += 1
 
     print(f"WROTE: {out_path} ({rows_written} rows)")
 

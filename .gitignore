@@ -55,5 +55,7 @@ plots/
 analysis_results/
 exp2(generation_blind)/
 exp1(strategy)/
+exp3(complex_markov)/
+exp3(complex_markov)_Old/
 # JSON files
 *.json

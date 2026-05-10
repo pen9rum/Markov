@@ -268,7 +268,7 @@ def get_response_deepseek(prompt: str,
         if "reasoner" in model_name.lower():
             max_tokens = 65536  # reasoner 在長對局中思考消耗大量 token，需要更大上限
         else:
-            max_tokens = 8192   # chat 默认值
+            max_tokens = 16384  # chat: increased for long simulations (1500 rounds)
     
     # DeepSeek API endpoint (OpenAI-compatible)
     api_url = "https://api.deepseek.com/v1/chat/completions"
@@ -405,71 +405,23 @@ def get_player_knowledge_base() -> str:
 # Rock-Paper-Scissors Player Behavior Knowledge Base
 
 ## Distribution Strategy Players
-These players always choose the same action:
-
+These players choose actions according to a fixed probability distribution, independently each round.
 **A - Pure Scissors**: Always plays Scissors (0% Rock, 0% Paper, 100% Scissors)
-- Completely predictable
-- Will lose to Rock players, beat Paper players, tie with Scissors players
-
 **B - Pure Rock**: Always plays Rock (100% Rock, 0% Paper, 0% Scissors)
-- Completely predictable
-- Will beat Scissors players, lose to Paper players, tie with Rock players
-
 **C - Pure Paper**: Always plays Paper (0% Rock, 100% Paper, 0% Scissors)
-- Completely predictable
-- Will beat Rock players, lose to Scissors players, tie with Paper players
-
 **D - Uniform Random**: Equal probability for all actions (33.3% Rock, 33.3% Paper, 33.4% Scissors)
-- Unpredictable order but balanced distribution
-- No exploitable pattern
-
 **E - Rock + Paper**: Only plays Rock or Paper (50% Rock, 50% Paper, 0% Scissors)
-- Never plays Scissors
-- Vulnerable to Scissors-heavy strategies
-
 **F - Rock + Scissors**: Only plays Rock or Scissors (50% Rock, 0% Paper, 50% Scissors)
-- Never plays Paper
-- Vulnerable to Paper-heavy strategies
-
 **G - Paper + Scissors**: Only plays Paper or Scissors (0% Rock, 50% Paper, 50% Scissors)
-- Never plays Rock
-- Vulnerable to Rock-heavy strategies
-
 **H - Rock Biased**: Prefers Rock (50% Rock, 25% Paper, 25% Scissors)
-- Rock appears twice as often as other moves
-- Can be exploited by Paper-biased strategies
-
 **I - Paper Biased**: Prefers Paper (25% Rock, 50% Paper, 25% Scissors)
-- Paper appears twice as often as other moves
-- Can be exploited by Scissors-biased strategies
-
 **J - Scissors Biased**: Prefers Scissors (25% Rock, 25% Paper, 50% Scissors)
-- Scissors appears twice as often as other moves
-- Can be exploited by Rock-biased strategies
-
 **K - Rock > Paper**: Strong Rock preference (50% Rock, 33.3% Paper, 16.7% Scissors)
-- Rock most common, Paper second, Scissors least
-- Hierarchy: Rock > Paper > Scissors
-
 **L - Rock > Scissors**: Strong Rock preference (50% Rock, 16.7% Paper, 33.3% Scissors)
-- Rock most common, Scissors second, Paper least
-- Hierarchy: Rock > Scissors > Paper
-
 **M - Paper > Rock**: Strong Paper preference (33.3% Rock, 50% Paper, 16.7% Scissors)
-- Paper most common, Rock second, Scissors least
-- Hierarchy: Paper > Rock > Scissors
-
 **N - Paper > Scissors**: Strong Paper preference (16.7% Rock, 50% Paper, 33.3% Scissors)
-- Paper most common, Scissors second, Rock least
-- Hierarchy: Paper > Scissors > Rock
-
 **O - Scissors > Rock**: Strong Scissors preference (33.3% Rock, 16.7% Paper, 50% Scissors)
-- Scissors most common, Rock second, Paper least
-- Hierarchy: Scissors > Rock > Paper
-
 **P - Scissors > Paper**: Strong Scissors preference (16.7% Rock, 33.3% Paper, 50% Scissors)
-- Scissors most common, Paper second, Rock least
-- Hierarchy: Scissors > Paper > Rock
 
 ## Markov Based Players 
 These players adapt their strategy based on opponent's previous moves:

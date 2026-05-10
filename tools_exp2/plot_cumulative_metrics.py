@@ -137,17 +137,17 @@ def plot_model(rows, model, outdir):
     axes[1].grid(True, alpha=0.3)
     axes[1].legend(fontsize=9)
 
-    axes[2].set_title(f'{model} — Cumulative Markov Exact Match')
+    axes[2].set_title(f'{model} — Cumulative Markov Overlap Rate')
     axes[2].set_xlabel('Window Index (100 rounds per window)')
-    axes[2].set_ylabel('Exact Match Rate')
+    axes[2].set_ylabel('Overlap Rate')
     axes[2].set_ylim(0.0, 1.05)
     axes[2].axhline(1.0 / 3.0, color='purple', linestyle='--', linewidth=1.5, label='Random baseline (1/3)')
     axes[2].grid(True, alpha=0.3)
     axes[2].legend(fontsize=9)
 
-    axes[3].set_title(f'{model} — Cumulative Markov Strict Exact Match')
+    axes[3].set_title(f'{model} — Cumulative Markov Exact Match')
     axes[3].set_xlabel('Window Index (100 rounds per window)')
-    axes[3].set_ylabel('Strict Pass Rate')
+    axes[3].set_ylabel('Exact Match Rate')
     axes[3].set_ylim(0.0, 1.05)
     axes[3].grid(True, alpha=0.3)
     axes[3].legend(fontsize=9)
@@ -167,8 +167,8 @@ def plot_overall(rows, outdir):
     metric_specs = [
         ('ce_cum', 'Overall Cumulative CE', 'CE', 0),
         ('mse_cum', 'Overall Cumulative MSE', 'MSE', 1),
-        ('exact_cum', 'Overall Cumulative Markov Exact Match', 'Exact Match Rate', 2),
-        ('strict_cum', 'Overall Cumulative Markov Strict Exact Match', 'Strict Pass Rate', 3),
+        ('exact_cum', 'Overall Cumulative Markov Overlap Rate', 'Overlap Rate', 2),
+        ('strict_cum', 'Overall Cumulative Markov Exact Match', 'Exact Match Rate', 3),
     ]
 
     for metric, title, ylabel, ax_idx in metric_specs:

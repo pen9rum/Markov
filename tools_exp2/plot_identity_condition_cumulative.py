@@ -109,8 +109,8 @@ def plot_markov_strict(rows, by_model=False):
     plot_markov_metric(
         rows,
         metric='strict_cum',
-        title='Markov Player — Cumulative Strict Exact Match',
-        ylabel='Cumulative Strict Pass Rate',
+        title='Markov Player — Cumulative Exact Match',
+        ylabel='Cumulative Exact Match Rate',
         outname='identity_condition_markov_strict_by_model_cumulative.png' if by_model else 'identity_condition_markov_strict_cumulative.png',
         by_model=by_model,
     )
@@ -120,8 +120,8 @@ def plot_markov_exact(rows, by_model=False):
     plot_markov_metric(
         rows,
         metric='exact_cum',
-        title='Markov Player — Cumulative Exact Match',
-        ylabel='Cumulative Exact Match Rate',
+        title='Markov Player — Cumulative Overlap Rate',
+        ylabel='Cumulative Overlap Rate',
         outname='identity_condition_markov_exact_cumulative.png' if not by_model else 'identity_condition_markov_exact_by_model_cumulative.png',
         by_model=by_model,
     )

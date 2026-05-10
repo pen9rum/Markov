@@ -26,7 +26,8 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'exp2(generation_blin
 
 ACTIONS = {"Rock", "Paper", "Scissors"}
 MARKOV_PLAYERS = {'X', 'Y', 'Z'}
-NON_MARKOV_PLAYERS = {k for k in PLAYER_CONFIGS if k not in MARKOV_PLAYERS}
+# Lock to A-P only (exp2 predates QRS/TUV/xyz_opp additions to PLAYER_CONFIGS)
+NON_MARKOV_PLAYERS = {k for k in 'ABCDEFGHIJKLMNOP'}
 # Exclude pure-static trivial players when paired with Markov (same as batch_experiment.py)
 NON_MARKOV_EXCL_ABC = NON_MARKOV_PLAYERS - {'A', 'B', 'C'}
 

@@ -82,9 +82,9 @@ def plot_for_model(agg_dict, model, outdir):
     axes[1].grid(True, alpha=0.3)
     axes[1].legend(fontsize=9, loc='best')
 
-    axes[2].set_title(f'{model} — Markov Exact Match vs Window', fontsize=12, fontweight='bold')
+    axes[2].set_title(f'{model} — Markov Overlap Rate vs Window', fontsize=12, fontweight='bold')
     axes[2].set_xlabel('Window Index (100 rounds per window)', fontsize=10)
-    axes[2].set_ylabel('Exact Match Rate', fontsize=10)
+    axes[2].set_ylabel('Overlap Rate', fontsize=10)
     axes[2].set_xticks(windows)
     axes[2].set_ylim(0.0, 1.05)
     axes[2].axhline(1.0 / 3.0, color='purple', linestyle='--', linewidth=1.5, label='Random baseline (1/3)')
@@ -93,9 +93,9 @@ def plot_for_model(agg_dict, model, outdir):
     if handles:
         axes[2].legend(fontsize=9, loc='best')
 
-    axes[3].set_title(f'{model} — Markov Strict Exact Match vs Window', fontsize=12, fontweight='bold')
+    axes[3].set_title(f'{model} — Markov Exact Match vs Window', fontsize=12, fontweight='bold')
     axes[3].set_xlabel('Window Index (100 rounds per window)', fontsize=10)
-    axes[3].set_ylabel('Strict Pass Rate', fontsize=10)
+    axes[3].set_ylabel('Exact Match Rate', fontsize=10)
     axes[3].set_xticks(windows)
     axes[3].set_ylim(0.0, 1.05)
     axes[3].grid(True, alpha=0.3)

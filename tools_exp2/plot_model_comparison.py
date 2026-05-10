@@ -144,9 +144,9 @@ def main():
     axes[1].grid(True, alpha=0.3)
     axes[1].legend(fontsize=9)
 
-    axes[2].set_title('Model Comparison — Markov Exact Match', fontsize=12, fontweight='bold')
+    axes[2].set_title('Model Comparison — Markov Overlap Rate', fontsize=12, fontweight='bold')
     axes[2].set_xlabel('Window Index (100 rounds per window)')
-    axes[2].set_ylabel('Exact Match Rate')
+    axes[2].set_ylabel('Overlap Rate')
     axes[2].set_ylim(0.0, 1.05)
     axes[2].set_xticks(windows)
     axes[2].axhline(1.0 / 3.0, color='purple', linestyle='--', linewidth=1.5, label='Random baseline (1/3)')
@@ -155,9 +155,9 @@ def main():
     if handles:
         axes[2].legend(fontsize=9)
 
-    axes[3].set_title('Model Comparison — Markov Strict Exact Match', fontsize=12, fontweight='bold')
+    axes[3].set_title('Model Comparison — Markov Exact Match', fontsize=12, fontweight='bold')
     axes[3].set_xlabel('Window Index (100 rounds per window)')
-    axes[3].set_ylabel('Strict Pass Rate')
+    axes[3].set_ylabel('Exact Match Rate')
     axes[3].set_ylim(0.0, 1.05)
     axes[3].set_xticks(windows)
     axes[3].grid(True, alpha=0.3)

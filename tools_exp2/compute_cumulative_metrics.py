@@ -207,28 +207,56 @@ def file_level_record(path):
     }
 
 
+TYPE_FOLDER_MAP = {'type1_non_markov': 1, 'type2_markov_p1': 2, 'type3_markov_p2': 3}
+MAX_FILES_PER_GROUP = 60
+MAX_WINDOWS = 10  # cap at 1000 rounds (10 x 100-round windows)
+
+
+def extract_model_combo_from_path(path, root):
+    rel = os.path.relpath(path, root).replace('\\', '/')
+    parts = rel.split('/')
+    model = parts[0] if len(parts) > 0 else ''
+    type_folder = parts[2] if len(parts) > 2 else ''
+    combo = TYPE_FOLDER_MAP.get(type_folder, 0)
+    return model, combo
+
+
+def collect_files_capped(root, max_per_group=MAX_FILES_PER_GROUP):
+    groups = {}
+    for dirpath, _, filenames in os.walk(root):
+        for fn in sorted(filenames):
+            if not fn.endswith('.json'):
+                continue
+            p = os.path.join(dirpath, fn)
+            key = extract_model_combo_from_path(p, root)
+            groups.setdefault(key, []).append(p)
+    result = []
+    for files in groups.values():
+        result.extend(sorted(files)[:max_per_group])
+    return result
+
+
 def main():
     root = os.path.join(os.getcwd(), 'exp2(generation_blind)', 'generation')
     out_csv = os.path.join(os.getcwd(), 'exp2(generation_blind)', 'analysis_results', 'cumulative_metrics.csv')
     os.makedirs(os.path.dirname(out_csv), exist_ok=True)
 
+    files = collect_files_capped(root)
     records = []
-    for dirpath, _, filenames in os.walk(root):
-        for fn in filenames:
-            if fn.endswith('.json'):
-                p = os.path.join(dirpath, fn)
-                try:
-                    rec = file_level_record(p)
-                except Exception as e:
-                    print(f'WARN: failed to process {p}: {e}')
-                    continue
-                if rec:
-                    records.append(rec)
+    for p in files:
+        try:
+            rec = file_level_record(p)
+        except Exception as e:
+            print(f'WARN: failed to process {p}: {e}')
+            continue
+        if rec:
+            records.append(rec)
 
-    # determine max length across all lists
+    # determine max length across all lists, capped at MAX_WINDOWS
     max_len = 0
     for rec in records:
         max_len = max(max_len, len(rec['ce_cum']), len(rec['mse_cum']), len(rec['exact_cum']), len(rec['strict_cum']))
+    max_len = min(max_len, MAX_WINDOWS)
 
     fieldnames = [
         'file', 'model', 'combo_type', 'player1_id', 'player2_id', 'pred_p1_id', 'pred_p2_id',

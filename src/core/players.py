@@ -16,9 +16,12 @@ class Action(Enum):
 
 class PlayerType(Enum):
     """玩家类型"""
-    STATIC = "S"  # 静态策略
-    DISTRIBUTION = "D"  # 分布策略
-    HISTORY = "H"  # 历史反应策略
+    STATIC = "S"          # 静态策略
+    DISTRIBUTION = "D"    # 分布策略
+    HISTORY = "H"         # 一阶 Markov，仅看对手上一手 (X/Y/Z)
+    COMPLEX_MARKOV = "CM" # 一阶联合状态 Markov，看自己+对手上一手 (Q/R/S)
+    SECOND_ORDER = "SO"   # 二阶联合状态 Markov，看自己+对手最近两手 (T/U/V)
+    SECOND_ORDER_OPP = "SOO" # 二阶非联合 Markov，仅看对手最近两手 (x/y/z)
 
 
 class Player:
@@ -172,6 +175,125 @@ class ReactivePlayer(Player):
             return Action.PAPER
 
 
+_ALL_ACTIONS = [Action.ROCK, Action.PAPER, Action.SCISSORS]
+
+_BEAT = {
+    Action.ROCK: Action.PAPER,
+    Action.PAPER: Action.SCISSORS,
+    Action.SCISSORS: Action.ROCK,
+}
+
+_LOSE = {
+    Action.ROCK: Action.SCISSORS,
+    Action.PAPER: Action.ROCK,
+    Action.SCISSORS: Action.PAPER,
+}
+
+
+class SecondOrderOppPlayer(Player):
+    """二阶非联合 Markov 玩家 (x/y/z)
+
+    P(A_t | B_{t-1}, B_{t-2})  — 只看对手最近两手
+
+    找出对手最近两手中没出现过的 missing action：
+      x: 直接出 missing
+      y: 出 beat(missing)
+      z: 出 lose(missing)
+    若两手相同 → 2 个 missing → 各 50/50
+    前两轮 history 不足 → 均匀随机
+    """
+
+    def __init__(self, name: str, player_type: PlayerType, strategy: str):
+        super().__init__(name, player_type, 0, 0, 0)
+        self.strategy = strategy  # "x", "y", or "z"
+
+    def choose_action(self) -> Action:
+        if len(self.opponent_history) < 2:
+            return random.choice(_ALL_ACTIONS)
+
+        appeared = {self.opponent_history[-2], self.opponent_history[-1]}
+        missing = [a for a in _ALL_ACTIONS if a not in appeared]
+
+        if self.strategy == "x":
+            return random.choice(missing)
+        elif self.strategy == "y":
+            return random.choice([_BEAT[m] for m in missing])
+        else:  # z
+            return random.choice([_LOSE[m] for m in missing])
+
+
+class ComplexMarkovPlayer(Player):
+    """一阶联合状态 Markov 玩家 (Q/R/S)
+
+    P(A_t | A_{t-1}, B_{t-1})
+
+    找出上一轮双方都没出过的手 (missing action)：
+      Q: 直接出 missing
+      R: 出 beat(missing)
+      S: 出 lose(missing)
+    若双方上一轮出同样的手，missing 有两个 → 各 50/50
+    """
+
+    def __init__(self, name: str, player_type: PlayerType, strategy: str):
+        super().__init__(name, player_type, 0, 0, 0)
+        self.strategy = strategy  # "Q", "R", or "S"
+
+    def choose_action(self) -> Action:
+        if not self.history or not self.opponent_history:
+            return random.choice(_ALL_ACTIONS)
+
+        self_prev = self.history[-1]
+        opp_prev = self.opponent_history[-1]
+        missing = [a for a in _ALL_ACTIONS if a != self_prev and a != opp_prev]
+        # missing has 1 element when self!=opp, 2 elements when self==opp (draw)
+
+        if self.strategy == "Q":
+            return random.choice(missing)
+        elif self.strategy == "R":
+            return random.choice([_BEAT[m] for m in missing])
+        else:  # S
+            return random.choice([_LOSE[m] for m in missing])
+
+
+class SecondOrderMarkovPlayer(Player):
+    """二阶联合状态 Markov 玩家 (T/U/V)
+
+    P(A_t | A_{t-1}, B_{t-1}, A_{t-2}, B_{t-2})
+
+    找出最近两轮四个动作中都没出现过的手 (missing)：
+      T: 直接出 missing
+      U: 出 beat(missing)
+      V: 出 lose(missing)
+    若 missing 有两个 → 各 50/50
+    若没有 missing（三种都出现了）→ 均匀随机 1/3
+    前两轮 history 不足 → 均匀随机
+    """
+
+    def __init__(self, name: str, player_type: PlayerType, strategy: str):
+        super().__init__(name, player_type, 0, 0, 0)
+        self.strategy = strategy  # "T", "U", or "V"
+
+    def choose_action(self) -> Action:
+        if len(self.history) < 2 or len(self.opponent_history) < 2:
+            return random.choice(_ALL_ACTIONS)
+
+        appeared = {
+            self.history[-2], self.history[-1],
+            self.opponent_history[-2], self.opponent_history[-1],
+        }
+        missing = [a for a in _ALL_ACTIONS if a not in appeared]
+
+        if not missing:  # all three appeared → random
+            return random.choice(_ALL_ACTIONS)
+
+        if self.strategy == "T":
+            return random.choice(missing)
+        elif self.strategy == "U":
+            return random.choice([_BEAT[m] for m in missing])
+        else:  # V
+            return random.choice([_LOSE[m] for m in missing])
+
+
 # 预定义的玩家配置
 PLAYER_CONFIGS = {
     "A": ("Pure Scissors", 0, 0, 1, PlayerType.STATIC, None),
@@ -190,9 +312,21 @@ PLAYER_CONFIGS = {
     "N": ("Paper > Scissors", 0.167, 0.50, 0.333, PlayerType.DISTRIBUTION, None),
     "O": ("Scissors > Rock", 0.333, 0.167, 0.50, PlayerType.DISTRIBUTION, None),
     "P": ("Scissors > Paper", 0.167, 0.333, 0.50, PlayerType.DISTRIBUTION, None),
-    "X": ("Win-Last", 0, 0, 0, PlayerType.HISTORY, "Win-Last"),
+    "X": ("Win-Last",  0, 0, 0, PlayerType.HISTORY, "Win-Last"),
     "Y": ("Lose-Last", 0, 0, 0, PlayerType.HISTORY, "Lose-Last"),
     "Z": ("Copy-Last", 0, 0, 0, PlayerType.HISTORY, "Copy-Last"),
+    # Joint-state first-order Markov (Q/R/S)
+    "Q": ("Missing-Action",  0, 0, 0, PlayerType.COMPLEX_MARKOV, "Q"),
+    "R": ("Beat-Missing",    0, 0, 0, PlayerType.COMPLEX_MARKOV, "R"),
+    "S": ("Lose-Missing",    0, 0, 0, PlayerType.COMPLEX_MARKOV, "S"),
+    # Second-order joint-state Markov (T/U/V)
+    "T": ("2R-Missing",      0, 0, 0, PlayerType.SECOND_ORDER, "T"),
+    "U": ("2R-Beat-Missing", 0, 0, 0, PlayerType.SECOND_ORDER, "U"),
+    "V": ("2R-Lose-Missing", 0, 0, 0, PlayerType.SECOND_ORDER, "V"),
+    # Second-order opponent-only Markov (x/y/z)
+    "x": ("2R-Opp-Missing",      0, 0, 0, PlayerType.SECOND_ORDER_OPP, "x"),
+    "y": ("2R-Opp-Beat-Missing", 0, 0, 0, PlayerType.SECOND_ORDER_OPP, "y"),
+    "z": ("2R-Opp-Lose-Missing", 0, 0, 0, PlayerType.SECOND_ORDER_OPP, "z"),
 }
 
 
@@ -207,5 +341,11 @@ def create_player(player_id: str) -> Player:
         return StaticPlayer(name, ptype, rock, paper, scissors)
     elif ptype == PlayerType.DISTRIBUTION:
         return DistributionPlayer(name, ptype, rock, paper, scissors)
-    else:  # HISTORY
+    elif ptype == PlayerType.COMPLEX_MARKOV:
+        return ComplexMarkovPlayer(name, ptype, strategy)
+    elif ptype == PlayerType.SECOND_ORDER:
+        return SecondOrderMarkovPlayer(name, ptype, strategy)
+    elif ptype == PlayerType.SECOND_ORDER_OPP:
+        return SecondOrderOppPlayer(name, ptype, strategy)
+    else:  # HISTORY (X/Y/Z)
         return ReactivePlayer(name, ptype, rock, paper, scissors, strategy)

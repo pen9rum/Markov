@@ -257,16 +257,16 @@ def plot_markov(slump_csv, outdir):
     strict_ns = [len(strict_correct), len(strict_wrong)]
 
     bars0 = axes[0].bar(groups, exact_vals, color=['#2E86DE', '#E74C3C'])
-    axes[0].set_title('Markov Player — Window Exact Match')
-    axes[0].set_ylabel('Rate')
+    axes[0].set_title('Markov Player — Window Overlap Rate')
+    axes[0].set_ylabel('Overlap Rate')
     axes[0].set_ylim(0.0, 1.0)
     axes[0].axhline(1.0 / 3.0, color='purple', linestyle='--', linewidth=1.5, label='Random baseline (1/3)')
     axes[0].grid(axis='y', alpha=0.3)
     axes[0].legend()
 
     bars1 = axes[1].bar(groups, strict_vals, color=['#2E86DE', '#E74C3C'])
-    axes[1].set_title('Markov Player — Strict Exact Match (All-or-Nothing)')
-    axes[1].set_ylabel('Rate')
+    axes[1].set_title('Markov Player — Exact Match (All-or-Nothing)')
+    axes[1].set_ylabel('Exact Match Rate')
     axes[1].set_ylim(0.0, 1.0)
     axes[1].grid(axis='y', alpha=0.3)
 
@@ -300,7 +300,7 @@ def plot_markov(slump_csv, outdir):
 
     bars00 = axes[0].bar([i - width / 2 for i in x], exact_c, width=width, label='Identity Correct', color='#2E86DE')
     bars01 = axes[0].bar([i + width / 2 for i in x], exact_w, width=width, label='Identity Wrong', color='#E74C3C')
-    axes[0].set_title('Markov Window Exact Match by Model')
+    axes[0].set_title('Markov Window Overlap Rate by Model')
     axes[0].set_ylabel('Rate')
     axes[0].set_ylim(0.0, 1.0)
     axes[0].axhline(1.0 / 3.0, color='purple', linestyle='--', linewidth=1.5, label='Random baseline (1/3)')
@@ -311,7 +311,7 @@ def plot_markov(slump_csv, outdir):
 
     bars10 = axes[1].bar([i - width / 2 for i in x], strict_c, width=width, label='Identity Correct', color='#2E86DE')
     bars11 = axes[1].bar([i + width / 2 for i in x], strict_w, width=width, label='Identity Wrong', color='#E74C3C')
-    axes[1].set_title('Markov Strict Exact Match by Model')
+    axes[1].set_title('Markov Exact Match by Model')
     axes[1].set_ylabel('Rate')
     axes[1].set_ylim(0.0, 1.0)
     axes[1].set_xticks(x)
