@@ -56,3 +56,6 @@ analysis_results/
 
 # JSON files
 *.json
+*.png
+*.jpg
+*.txt
