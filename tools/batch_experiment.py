@@ -17,7 +17,7 @@ from core.players import PLAYER_CONFIGS
 
 
 # 批量实验结果保存目录
-BATCH_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'batch_results')
+BATCH_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'exp1(strategy)', 'batch_results')
 
 # Markov玩家列表
 MARKOV_PLAYERS = {'X', 'Y', 'Z'}

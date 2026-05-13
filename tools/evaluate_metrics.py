@@ -280,6 +280,9 @@ def summarize(rows):
             union = (ce_norm + brier_norm + evloss_norm) / 3.0
             union_values.append(union)
     
+    nonmarkov_vals = [r["NonMarkovCorrect"] for r in rows if r.get("NonMarkovCorrect") is not None]
+    nonmarkov_acc = mean(nonmarkov_vals) if nonmarkov_vals else None
+
     return {
         "samples": len(rows),
         "ACC": mean(acc),
@@ -302,6 +305,7 @@ def summarize(rows):
         "Brier": mean(brier_valid),
         "EVLoss": mean(evloss_valid),
         "Union": mean(union_values) if union_values else None,
+        "NonMarkovACC": nonmarkov_acc,
     }
 
 
@@ -369,6 +373,16 @@ def evaluate_file(data, file_path):
                            if gt_id not in MARKOV_PLAYERS and pr_id == gt_id)
     markov_fp_strict = sum(1 for gt_id, pr_id in zip([gt1, gt2], [pred1, pred2])
                            if gt_id not in MARKOV_PLAYERS and pr_id != gt_id)
+
+    # =========================
+    # Non-Markov player identity accuracy
+    # =========================
+    nonmarkov_correct_list = [
+        int(pr_id == gt_id)
+        for gt_id, pr_id in zip([gt1, gt2], [pred1, pred2])
+        if gt_id not in MARKOV_PLAYERS
+    ]
+    nonmarkov_correct = mean(nonmarkov_correct_list) if nonmarkov_correct_list else None
 
     # =========================
     # TV distance
@@ -493,6 +507,7 @@ def evaluate_file(data, file_path):
         "CE": ce,
         "Brier": brier,
         "EVLoss": evloss,
+        "NonMarkovCorrect": nonmarkov_correct,
     }
 
 

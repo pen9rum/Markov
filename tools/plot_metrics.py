@@ -17,6 +17,8 @@ plt.rcParams['axes.unicode_minus'] = False
 
 DEFAULT_METRICS = [
     'acc', 'mda', 'markov_exact', 'markov_precision', 'markov_recall', 'markov_f1',
+    'markov_acc_strict', 'markov_precision_strict', 'markov_recall_strict', 'markov_f1_strict',
+    'nonmarkov_acc',
     'tv', 'wr_gap', 'ce', 'brier', 'evloss', 'union'
 ]
 
@@ -73,8 +75,11 @@ def plot_metrics_by_rounds(csv_file: str,
     if output_dir is None:
         output_dir = os.path.join(os.path.dirname(__file__), '..', 'plots')
     
-    os.makedirs(output_dir, exist_ok=True)
-    
+    dir_png = os.path.join(output_dir, 'others', 'png')
+    dir_pdf = os.path.join(output_dir, 'others', 'pdf')
+    os.makedirs(dir_png, exist_ok=True)
+    os.makedirs(dir_pdf, exist_ok=True)
+
     # Metric display names (English only)
     metric_info = {
         'acc': 'ACC',
@@ -83,6 +88,11 @@ def plot_metrics_by_rounds(csv_file: str,
         'markov_precision': 'Markov Precision',
         'markov_recall': 'Markov Recall',
         'markov_f1': 'Markov F1',
+        'markov_acc_strict': 'Markov Acc (Strict)',
+        'markov_precision_strict': 'Markov Precision (Strict)',
+        'markov_recall_strict': 'Markov Recall (Strict)',
+        'markov_f1_strict': 'Markov F1 (Strict)',
+        'nonmarkov_acc': 'Non-Markov ACC',
         'tv': 'TV',
         'wr_gap': 'WR Gap',
         'ce': 'CE',
@@ -90,71 +100,44 @@ def plot_metrics_by_rounds(csv_file: str,
         'evloss': 'EVLoss',
         'union': 'Union'
     }
-    
-    # 颜色和标记样式
+
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
     markers = ['o', 's', '^', 'D', 'v', 'p']
-    
-    # 为每个指标绘制单独的图
+
     for metric in metrics:
         if metric not in df_filtered.columns:
             print(f"警告: 指标 '{metric}' 不存在于数据中，跳过")
             continue
-        
+
         plt.figure(figsize=(10, 6))
-        
-        # 为每个模型绘制一条线
+
         for idx, model in enumerate(all_models):
             model_data = df_filtered[df_filtered['model'] == model]
-            
-            # 按rounds排序并提取数据
-            x = []
-            y = []
+            x, y = [], []
             for rounds in all_rounds:
                 round_data = model_data[model_data['rounds'] == rounds]
                 if not round_data.empty:
                     x.append(rounds)
                     y.append(round_data[metric].values[0])
-            
-            # 绘制线条
             color = colors[idx % len(colors)]
             marker = markers[idx % len(markers)]
-            plt.plot(x, y, 
-                    marker=marker, 
-                    color=color,
-                    linewidth=2,
-                    markersize=8,
-                    label=model,
-                    alpha=0.8)
-        
-        # Title and labels
+            plt.plot(x, y, marker=marker, color=color,
+                     linewidth=3, markersize=10, label=model, alpha=0.9)
+
         title_name = metric_info.get(metric, metric.upper())
-        plt.title(f'{title_name} vs Rounds', fontsize=14, pad=10)
         plt.xlabel('Rounds', fontsize=12)
         plt.ylabel(title_name, fontsize=12)
-        
-        # 设置网格
         plt.grid(True, alpha=0.3, linestyle='--')
-        
-        # 设置x轴刻度
         plt.xticks(all_rounds)
-        
-        # 添加图例
         plt.legend(loc='best', framealpha=0.9)
-        
-        # 调整布局
         plt.tight_layout()
-        
-        # 保存图片
-        filename = f"{metric}_vs_rounds_{exp_type}.png"
-        filepath = os.path.join(output_dir, filename)
-        plt.savefig(filepath, dpi=300, bbox_inches='tight')
-        print(f"✓ 保存图表: {filepath}")
-        
-        if show:
-            plt.show()
-        else:
-            plt.close()
+
+        stem = f"{metric}_vs_rounds_{exp_type}"
+        plt.savefig(os.path.join(dir_png, f"{stem}.png"), dpi=400, bbox_inches='tight')
+        plt.savefig(os.path.join(dir_pdf, f"{stem}.pdf"), dpi=400, bbox_inches='tight')
+        print(f"✓ 保存图表: {stem}")
+
+        plt.show() if show else plt.close()
 
 
 def plot_multiple_metrics(csv_file: str,
@@ -199,9 +182,11 @@ def plot_multiple_metrics(csv_file: str,
     if output_dir is None:
         output_dir = os.path.join(os.path.dirname(__file__), '..', 'plots')
     
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # 计算子图布局
+    dir_png = os.path.join(output_dir, 'others', 'png')
+    dir_pdf = os.path.join(output_dir, 'others', 'pdf')
+    os.makedirs(dir_png, exist_ok=True)
+    os.makedirs(dir_pdf, exist_ok=True)
+
     n_metrics = len(metrics)
     if layout is None:
         if n_metrics <= 2:
@@ -213,8 +198,7 @@ def plot_multiple_metrics(csv_file: str,
             rows = math.ceil(n_metrics / cols)
     else:
         rows, cols = layout
-    
-    # Metric display names (English only)
+
     metric_info = {
         'acc': 'ACC',
         'mda': 'MDA',
@@ -222,6 +206,11 @@ def plot_multiple_metrics(csv_file: str,
         'markov_precision': 'Markov Precision',
         'markov_recall': 'Markov Recall',
         'markov_f1': 'Markov F1',
+        'markov_acc_strict': 'Markov Acc (Strict)',
+        'markov_precision_strict': 'Markov Precision (Strict)',
+        'markov_recall_strict': 'Markov Recall (Strict)',
+        'markov_f1_strict': 'Markov F1 (Strict)',
+        'nonmarkov_acc': 'Non-Markov ACC',
         'tv': 'TV',
         'wr_gap': 'WR Gap',
         'ce': 'CE',
@@ -229,79 +218,55 @@ def plot_multiple_metrics(csv_file: str,
         'evloss': 'EVLoss',
         'union': 'Union'
     }
-    
-    # 颜色和标记
+
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
     markers = ['o', 's', '^', 'D', 'v', 'p']
-    
-    # 创建画布
+
     fig, axes = plt.subplots(rows, cols, figsize=(6*cols, 4*rows))
     if n_metrics == 1:
         axes = [axes]
     else:
         axes = axes.flatten()
-    
-    # 为每个指标绘制子图
+
     for idx, metric in enumerate(metrics):
         if metric not in df_filtered.columns:
             print(f"警告: 指标 '{metric}' 不存在，跳过")
             continue
-        
+
         ax = axes[idx]
-        
-        # 为每个模型绘制线条
         for model_idx, model in enumerate(all_models):
             model_data = df_filtered[df_filtered['model'] == model]
-            
-            x = []
-            y = []
+            x, y = [], []
             for rounds in all_rounds:
                 round_data = model_data[model_data['rounds'] == rounds]
                 if not round_data.empty:
                     x.append(rounds)
                     y.append(round_data[metric].values[0])
-            
             color = colors[model_idx % len(colors)]
             marker = markers[model_idx % len(markers)]
-            ax.plot(x, y,
-                   marker=marker,
-                   color=color,
-                   linewidth=2,
-                   markersize=6,
-                   label=model,
-                   alpha=0.8)
-        
-        # Title and labels
+            ax.plot(x, y, marker=marker, color=color,
+                    linewidth=3, markersize=8, label=model, alpha=0.9)
+
         title = metric_info.get(metric, metric.upper())
         ax.set_title(title, fontsize=11, pad=6)
         ax.set_xlabel('Rounds', fontsize=10)
         ax.set_ylabel(title, fontsize=10)
         ax.grid(True, alpha=0.3, linestyle='--')
         ax.set_xticks(all_rounds)
-        
-        # 只在第一个子图显示图例
         if idx == 0:
             ax.legend(loc='best', fontsize=9, framealpha=0.9)
-    
-    # 隐藏多余的子图
+
     for idx in range(n_metrics, len(axes)):
         axes[idx].axis('off')
-    
-    # Main title (lowered)
-    fig.suptitle(f'Metrics vs Rounds ({exp_type})', fontsize=16, y=0.97)
-    
-    plt.tight_layout(rect=[0, 0, 1, 0.94])
-    
-    # 保存
-    filename = f"all_metrics_vs_rounds_{exp_type}.png"
-    filepath = os.path.join(output_dir, filename)
-    plt.savefig(filepath, dpi=300, bbox_inches='tight')
-    print(f"✓ 保存组合图表: {filepath}")
-    
-    if show:
-        plt.show()
-    else:
-        plt.close()
+
+    plt.tight_layout()
+
+    stem = f"all_metrics_vs_rounds_{exp_type}"
+    plt.savefig(os.path.join(dir_png, f"{stem}.png"), dpi=400, bbox_inches='tight')
+    plt.savefig(os.path.join(dir_pdf, f"{stem}.pdf"), dpi=400, bbox_inches='tight')
+    print(f"✓ 保存组合图表: {stem}")
+
+    plt.show() if show else plt.close()
 
 
 def _draw_confusion_axes(ax, tp, fp, fn, tn, title='', fontsize=11):
@@ -327,8 +292,7 @@ def _draw_confusion_axes(ax, tp, fp, fn, tn, title='', fontsize=11):
     ax.set_yticklabels(['Non-Markov', 'Markov'], fontsize=9)
     ax.set_xlabel('Predicted', fontsize=9)
     ax.set_ylabel('Actual', fontsize=9)
-    if title:
-        ax.set_title(title, fontsize=10, fontweight='bold')
+    # title intentionally omitted; caller adds model name at bottom
 
 
 def _save_confusion_set(df_f, all_models, all_rounds, exp_type,
@@ -350,45 +314,44 @@ def _save_confusion_set(df_f, all_models, all_rounds, exp_type,
                 int(rd.get(fn_col) or 0),
                 int(rd.get(tn_col) or 0))
 
-    # ── 4 per-round figures ──────────────────────────────────────────────
-    for rounds in all_rounds:
-        fig, axes = plt.subplots(1, n_models, figsize=(4 * n_models, 4), squeeze=False)
-        for col_j, model in enumerate(all_models):
-            ax = axes[0][col_j]
-            row_data = df_f[(df_f['model'] == model) & (df_f['rounds'] == rounds)]
-            tp, fp, fn, tn = get_counts(row_data)
-            _draw_confusion_axes(ax, tp, fp, fn, tn, title=model)
-        fig.suptitle(
-            f'{title_prefix}\n{exp_type} | Rounds = {rounds}',
-            fontsize=13, y=0.97
-        )
-        plt.tight_layout(rect=[0, 0, 1, 0.93])
-        fname = f"confusion_{exp_type}_rounds{rounds}.png"
-        fpath = os.path.join(output_dir, fname)
-        plt.savefig(fpath, dpi=300, bbox_inches='tight')
-        print(f"✓ 保存: {fpath}")
+    def _save_fig(fig, axes_flat, models_list, fname_base):
+        for idx, model in enumerate(models_list):
+            ax = axes_flat[idx]
+            ax.text(0.5, -0.22, model, transform=ax.transAxes,
+                    ha='center', va='top', fontsize=10, fontweight='bold')
+        # hide unused axes (if n_models < 4)
+        for idx in range(len(models_list), len(axes_flat)):
+            axes_flat[idx].set_visible(False)
+        plt.tight_layout()
+        for ext in ('pdf', 'png'):
+            fpath = os.path.join(output_dir, f"{fname_base}.{ext}")
+            plt.savefig(fpath, dpi=400, bbox_inches='tight')
+            print(f"✓ 保存: {fpath}")
         plt.show() if show else plt.close()
 
+    # ── 4 per-round figures ──────────────────────────────────────────────
+    for rounds in all_rounds:
+        fig, axes = plt.subplots(2, 2, figsize=(9, 9), squeeze=False)
+        axes_flat = [axes[r][c] for r in range(2) for c in range(2)]
+        for idx, model in enumerate(all_models):
+            ax = axes_flat[idx]
+            row_data = df_f[(df_f['model'] == model) & (df_f['rounds'] == rounds)]
+            tp, fp, fn, tn = get_counts(row_data)
+            _draw_confusion_axes(ax, tp, fp, fn, tn)
+        _save_fig(fig, axes_flat, all_models, f"confusion_{exp_type}_rounds{rounds}")
+
     # ── 1 aggregated figure ──────────────────────────────────────────────
-    fig, axes = plt.subplots(1, n_models, figsize=(4 * n_models, 4), squeeze=False)
-    for col_j, model in enumerate(all_models):
-        ax = axes[0][col_j]
+    fig, axes = plt.subplots(2, 2, figsize=(9, 9), squeeze=False)
+    axes_flat = [axes[r][c] for r in range(2) for c in range(2)]
+    for idx, model in enumerate(all_models):
+        ax = axes_flat[idx]
         md = df_f[df_f['model'] == model]
         tp = int(md[tp_col].fillna(0).sum())
         fp = int(md[fp_col].fillna(0).sum())
         fn = int(md[fn_col].fillna(0).sum())
         tn = int(md[tn_col].fillna(0).sum())
-        _draw_confusion_axes(ax, tp, fp, fn, tn, title=model)
-    fig.suptitle(
-        f'{title_prefix}\n{exp_type} | All Rounds Aggregated',
-        fontsize=13, y=0.97
-    )
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
-    fname = f"confusion_{exp_type}_all.png"
-    fpath = os.path.join(output_dir, fname)
-    plt.savefig(fpath, dpi=300, bbox_inches='tight')
-    print(f"✓ 保存: {fpath}")
-    plt.show() if show else plt.close()
+        _draw_confusion_axes(ax, tp, fp, fn, tn)
+    _save_fig(fig, axes_flat, all_models, f"confusion_{exp_type}_all")
 
 
 def plot_confusion_matrices(csv_file: str,
@@ -443,6 +406,72 @@ def plot_confusion_matrices(csv_file: str,
     )
 
 
+def plot_acc_bars(csv_file: str,
+                  models: list = None,
+                  output_dir: str = None,
+                  show: bool = True):
+    """
+    3 grouped bar charts: Overall ACC / Non-Markov ACC / Markov Player ACC
+    X-axis = rounds, one bar-color per model.
+    """
+    df = pd.read_csv(csv_file)
+    df = df[df['type'] == 'overall'].copy()
+
+    all_models = models or list(df['model'].unique())
+    all_rounds  = sorted(df['rounds'].unique())
+
+    metrics = [
+        ('acc',                 'Overall ACC',          'Accuracy'),
+        ('nonmarkov_acc',       'Non-Markov Player ACC','Accuracy'),
+        ('markov_recall_strict','Markov Player ACC',    'Accuracy'),
+    ]
+
+    if output_dir is None:
+        output_dir = os.path.join(os.path.dirname(__file__), '..', 'plots')
+    dir_png = os.path.join(output_dir, 'others', 'png')
+    dir_pdf = os.path.join(output_dir, 'others', 'pdf')
+    os.makedirs(dir_png, exist_ok=True)
+    os.makedirs(dir_pdf, exist_ok=True)
+
+    colors  = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b']
+    n_models = len(all_models)
+    w = 0.75 / n_models
+
+    for col, title, ylabel in metrics:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        x = np.arange(len(all_rounds))
+
+        for i, model in enumerate(all_models):
+            vals = []
+            for r in all_rounds:
+                row = df[(df['model'] == model) & (df['rounds'] == r)]
+                vals.append(float(row[col].values[0]) if not row.empty and not pd.isna(row[col].values[0]) else np.nan)
+
+            offset = (i - n_models / 2 + 0.5) * w
+            bars = ax.bar(x + offset, vals, w,
+                          label=model, color=colors[i % len(colors)], alpha=0.85)
+            for bar in bars:
+                h = bar.get_height()
+                if not np.isnan(h):
+                    ax.text(bar.get_x() + bar.get_width() / 2, h + 0.012,
+                            f'{h:.2f}', ha='center', va='bottom', fontsize=7.5)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels([str(r) for r in all_rounds], fontsize=11)
+        ax.set_xlabel('Rounds', fontsize=12)
+        ax.set_ylabel(ylabel, fontsize=12)
+        ax.set_ylim(0, 1.18)
+        ax.legend(loc='upper right', fontsize=9)
+        ax.grid(axis='y', alpha=0.3, linestyle='--')
+        plt.tight_layout()
+
+        stem = f"bar_{col}_vs_rounds"
+        plt.savefig(os.path.join(dir_png, f"{stem}.png"), dpi=400, bbox_inches='tight')
+        plt.savefig(os.path.join(dir_pdf, f"{stem}.pdf"), dpi=400, bbox_inches='tight')
+        print(f"✓ 保存: {stem}")
+        plt.show() if show else plt.close()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='绘制评估指标随trajectory长度变化的趋势图',
@@ -483,13 +512,17 @@ def main():
                        help='绘制组合图（所有指标在一张图）')
     parser.add_argument('--confusion', action='store_true',
                        help='绘制 Markov 混淆矩陣圖（TP/FP/FN/TN heatmap）')
+    parser.add_argument('--bar', action='store_true',
+                       help='绘制 3 张 ACC 对比 bar chart (overall / non-markov / markov player)')
+    parser.add_argument('--csv', type=str, default=None,
+                       help='CSV文件路径（默认: ../metrics_export.csv）')
     parser.add_argument('--no-show', action='store_true',
                        help='不显示图表，仅保存文件')
     
     args = parser.parse_args()
     
     # 自动查找CSV文件
-    csv_path = os.path.join(os.path.dirname(__file__), '..', 'metrics_export.csv')
+    csv_path = args.csv if args.csv else os.path.join(os.path.dirname(__file__), '..', 'metrics_export.csv')
     
     if not os.path.exists(csv_path):
         print(f"错误: CSV文件不存在: {csv_path}")
@@ -508,7 +541,14 @@ def main():
     
     show = not args.no_show
 
-    if args.confusion:
+    if args.bar:
+        plot_acc_bars(
+            csv_path,
+            models=args.models,
+            output_dir=args.output,
+            show=show
+        )
+    elif args.confusion:
         plot_confusion_matrices(
             csv_path,
             models=args.models,

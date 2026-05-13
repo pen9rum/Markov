@@ -8,6 +8,17 @@ import csv
 from pathlib import Path
 
 
+def _strict_metrics(tp, fp, fn, tn):
+    total = (tp or 0) + (fp or 0) + (fn or 0) + (tn or 0)
+    acc = ((tp or 0) + (tn or 0)) / total if total > 0 else None
+    precision = (tp or 0) / ((tp or 0) + (fp or 0)) if (tp or 0) + (fp or 0) > 0 else None
+    recall    = (tp or 0) / ((tp or 0) + (fn or 0)) if (tp or 0) + (fn or 0) > 0 else None
+    f1 = (2 * precision * recall / (precision + recall)
+          if precision is not None and recall is not None and (precision + recall) > 0
+          else None)
+    return acc, precision, recall, f1
+
+
 def collect_metrics(models, rounds, parsed_output_dir="parsed_output"):
     """
     收集指定模型和 rounds 的評估指標
@@ -37,98 +48,51 @@ def collect_metrics(models, rounds, parsed_output_dir="parsed_output"):
                 with open(eval_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                 
-                # 添加 overall 結果
+                def _row(section, type_name):
+                    tp  = section.get("MarkovTP_strict")
+                    fp  = section.get("MarkovFP_strict")
+                    fn  = section.get("MarkovFN_strict")
+                    tn  = section.get("MarkovTN_strict")
+                    s_acc, s_prec, s_rec, s_f1 = _strict_metrics(tp, fp, fn, tn)
+                    return {
+                        "model": model,
+                        "rounds": round_num,
+                        "type": type_name,
+                        "samples": section.get("samples", 0),
+                        "skipped_count": data.get("skipped_count", 0),
+                        "acc": section.get("ACC"),
+                        "mda": section.get("MDA"),
+                        "markov_exact": section.get("MarkovExact", section.get("MDA")),
+                        "markov_precision": section.get("MarkovPrecision"),
+                        "markov_recall": section.get("MarkovRecall"),
+                        "markov_f1": section.get("MarkovF1"),
+                        "markov_tp": section.get("MarkovTP"),
+                        "markov_fp": section.get("MarkovFP"),
+                        "markov_fn": section.get("MarkovFN"),
+                        "markov_tn": section.get("MarkovTN"),
+                        "markov_tp_strict": tp,
+                        "markov_fp_strict": fp,
+                        "markov_fn_strict": fn,
+                        "markov_tn_strict": tn,
+                        "markov_acc_strict": s_acc,
+                        "markov_precision_strict": s_prec,
+                        "markov_recall_strict": s_rec,
+                        "markov_f1_strict": s_f1,
+                        "tv": section.get("TV"),
+                        "wr_gap": section.get("WR_gap"),
+                        "ce": section.get("CE"),
+                        "brier": section.get("Brier"),
+                        "evloss": section.get("EVLoss"),
+                        "union": section.get("Union"),
+                        "nonmarkov_acc": section.get("NonMarkovACC"),
+                    }
+
                 if "overall" in data:
-                    overall = data["overall"]
-                    results.append({
-                        "model": model,
-                        "rounds": round_num,
-                        "type": "overall",
-                        "samples": overall.get("samples", 0),
-                        "skipped_count": data.get("skipped_count", 0),
-                        "acc": overall.get("ACC"),
-                        "mda": overall.get("MDA"),
-                        "markov_exact": overall.get("MarkovExact", overall.get("MDA")),
-                        "markov_precision": overall.get("MarkovPrecision"),
-                        "markov_recall": overall.get("MarkovRecall"),
-                        "markov_f1": overall.get("MarkovF1"),
-                        "markov_tp": overall.get("MarkovTP"),
-                        "markov_fp": overall.get("MarkovFP"),
-                        "markov_fn": overall.get("MarkovFN"),
-                        "markov_tn": overall.get("MarkovTN"),
-                        "markov_tp_strict": overall.get("MarkovTP_strict"),
-                        "markov_fp_strict": overall.get("MarkovFP_strict"),
-                        "markov_fn_strict": overall.get("MarkovFN_strict"),
-                        "markov_tn_strict": overall.get("MarkovTN_strict"),
-                        "tv": overall.get("TV"),
-                        "wr_gap": overall.get("WR_gap"),
-                        "ce": overall.get("CE"),
-                        "brier": overall.get("Brier"),
-                        "evloss": overall.get("EVLoss"),
-                        "union": overall.get("Union"),
-                    })
-                
-                # 添加 non_markov 結果
+                    results.append(_row(data["overall"], "overall"))
                 if "non_markov" in data:
-                    non_markov = data["non_markov"]
-                    results.append({
-                        "model": model,
-                        "rounds": round_num,
-                        "type": "type1_non_markov",
-                        "samples": non_markov.get("samples", 0),
-                        "skipped_count": data.get("skipped_count", 0),
-                        "acc": non_markov.get("ACC"),
-                        "mda": non_markov.get("MDA"),
-                        "markov_exact": non_markov.get("MarkovExact", non_markov.get("MDA")),
-                        "markov_precision": non_markov.get("MarkovPrecision"),
-                        "markov_recall": non_markov.get("MarkovRecall"),
-                        "markov_f1": non_markov.get("MarkovF1"),
-                        "markov_tp": non_markov.get("MarkovTP"),
-                        "markov_fp": non_markov.get("MarkovFP"),
-                        "markov_fn": non_markov.get("MarkovFN"),
-                        "markov_tn": non_markov.get("MarkovTN"),
-                        "markov_tp_strict": non_markov.get("MarkovTP_strict"),
-                        "markov_fp_strict": non_markov.get("MarkovFP_strict"),
-                        "markov_fn_strict": non_markov.get("MarkovFN_strict"),
-                        "markov_tn_strict": non_markov.get("MarkovTN_strict"),
-                        "tv": non_markov.get("TV"),
-                        "wr_gap": non_markov.get("WR_gap"),
-                        "ce": non_markov.get("CE"),
-                        "brier": non_markov.get("Brier"),
-                        "evloss": non_markov.get("EVLoss"),
-                        "union": non_markov.get("Union"),
-                    })
-                
-                # 添加 with_markov 結果
+                    results.append(_row(data["non_markov"], "type1_non_markov"))
                 if "with_markov" in data:
-                    with_markov = data["with_markov"]
-                    results.append({
-                        "model": model,
-                        "rounds": round_num,
-                        "type": "type2_with_markov",
-                        "samples": with_markov.get("samples", 0),
-                        "skipped_count": data.get("skipped_count", 0),
-                        "acc": with_markov.get("ACC"),
-                        "mda": with_markov.get("MDA"),
-                        "markov_exact": with_markov.get("MarkovExact", with_markov.get("MDA")),
-                        "markov_precision": with_markov.get("MarkovPrecision"),
-                        "markov_recall": with_markov.get("MarkovRecall"),
-                        "markov_f1": with_markov.get("MarkovF1"),
-                        "markov_tp": with_markov.get("MarkovTP"),
-                        "markov_fp": with_markov.get("MarkovFP"),
-                        "markov_fn": with_markov.get("MarkovFN"),
-                        "markov_tn": with_markov.get("MarkovTN"),
-                        "markov_tp_strict": with_markov.get("MarkovTP_strict"),
-                        "markov_fp_strict": with_markov.get("MarkovFP_strict"),
-                        "markov_fn_strict": with_markov.get("MarkovFN_strict"),
-                        "markov_tn_strict": with_markov.get("MarkovTN_strict"),
-                        "tv": with_markov.get("TV"),
-                        "wr_gap": with_markov.get("WR_gap"),
-                        "ce": with_markov.get("CE"),
-                        "brier": with_markov.get("Brier"),
-                        "evloss": with_markov.get("EVLoss"),
-                        "union": with_markov.get("Union"),
-                    })
+                    results.append(_row(data["with_markov"], "type2_with_markov"))
                 
                 print(f"✓ 收集完成: {model}/{round_num}")
                 
@@ -171,12 +135,17 @@ def export_to_csv(results, output_file):
         "markov_fp_strict",
         "markov_fn_strict",
         "markov_tn_strict",
+        "markov_acc_strict",
+        "markov_precision_strict",
+        "markov_recall_strict",
+        "markov_f1_strict",
         "tv",
         "wr_gap",
         "ce",
         "brier",
         "evloss",
         "union",
+        "nonmarkov_acc",
     ]
     
     # 寫入 CSV
