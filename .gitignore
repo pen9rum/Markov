@@ -59,3 +59,5 @@ exp1(strategy)/
 *.json
 *.png
 *.jpg
+*.pdf
+*.txt
