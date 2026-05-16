@@ -59,3 +59,5 @@ exp3(complex_markov)/
 exp3(complex_markov)_Old/
 # JSON files
 *.json
+exp1+2/
+garbage/

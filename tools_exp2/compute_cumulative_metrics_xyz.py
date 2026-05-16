@@ -57,7 +57,7 @@ def main():
 
     groups = defaultdict(list)
     for r in rows:
-        key = (r['model'], r['player1_id'], r['player2_id'], r['pred_p1_id'], r['pred_p2_id'])
+        key = (r['model'], r['file_idx'], r['player1_id'], r['player2_id'], r['pred_p1_id'], r['pred_p2_id'])
         groups[key].append(r)
 
     out_rows = []
