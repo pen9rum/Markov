@@ -50,7 +50,7 @@ VALID_IDS = {
     'xyz': list('ABCDEFGHIJKLMNOPXYZ'),
     'qrs': list('ABCDEFGHIJKLMNOPQRS'),
     'tuv': list('ABCDEFGHIJKLMNOPTUV'),
-    'xyz_opp': list('DEFGHIJKLMNOPxyz'),
+    'xyz_opp': list('ABCDEFGHIJKLMNOPxyz'),
 }
 
 # ---------------------------------------------------------------------------

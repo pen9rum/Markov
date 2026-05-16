@@ -284,7 +284,7 @@ def build_simulation_prompt(player1_trajectory: str, player2_trajectory: str,
         'xyz': 'A B C D E F G H I J K L M N O P X Y Z',
         'qrs': 'A B C D E F G H I J K L M N O P Q R S',
         'tuv': 'A B C D E F G H I J K L M N O P T U V',
-        'xyz_opp': 'D E F G H I J K L M N O P x y z',
+        'xyz_opp': 'A B C D E F G H I J K L M N O P x y z',
     }
 
     p1_moves = player1_trajectory.split()
@@ -365,7 +365,7 @@ def parse_simulation_output(raw_output: str, capture_rounds: int) -> dict | None
     p1_identity = p1_id_match.group(1) if p1_id_match else None
     p2_identity = p2_id_match.group(1) if p2_id_match else None
     if not p1_identity or not p2_identity:
-        print("  ⚠️  Could not find P1_identity or P2_identity.")
+        print("  WARNING: Could not find P1_identity or P2_identity.")
 
     round_pattern = re.compile(
         r"Round\s+\d+\s*:\s*(Rock|Paper|Scissors)\s+(Rock|Paper|Scissors)", re.IGNORECASE)
@@ -375,13 +375,13 @@ def parse_simulation_output(raw_output: str, capture_rounds: int) -> dict | None
         p2_moves.append(m.group(2).capitalize())
 
     if not p1_moves:
-        print("  ⚠️  No round lines found in SIMULATION block.")
+        print("  WARNING: No round lines found in SIMULATION block.")
         return None
 
     got = len(p1_moves)
     complete = got >= capture_rounds
     if got < capture_rounds:
-        print(f"  ⚠️  Incomplete: wanted {capture_rounds}, got {got}. Keeping partial.")
+        print(f"  WARNING: Incomplete: wanted {capture_rounds}, got {got}. Keeping partial.")
     p1_moves = p1_moves[:capture_rounds]
     p2_moves = p2_moves[:capture_rounds]
 
@@ -506,7 +506,7 @@ def run_simulation_experiment(player1_id: str, player2_id: str,
     else:
         result["llm_simulation"] = {"raw_output": raw_output, "parsed_rounds": 0, "complete": False}
         result["error"] = "Incomplete or unparseable output"
-        print("  ✗ Parsing failed")
+        print("  Parsing failed")
 
     return result
 
@@ -597,7 +597,7 @@ Examples:
         out_dir = os.path.join(OUTPUT_DIR, clean_model,
                                f"ctx{args.context}_sim{args.simulate}", TYPE_FOLDERS[ct])
         path = save_result(exp, out_dir)
-        print(f"\n✓ Saved: {path}")
+        print(f"\nSaved: {path}")
         return
 
     # -----------------------------------------------------------------------
@@ -635,7 +635,7 @@ Examples:
                 p1, p2, args.context, args.simulate, capture_rounds,
                 api_type, model_name, markov_set, use_kb)
         except Exception as e:
-            print(f"  ✗ Exception: {e}")
+            print(f"  Exception: {e}")
             exp = {"success": False, "error": str(e), "player1_id": p1, "player2_id": p2}
         exp["combo_type"] = combo_type
         pending.append((combo_type, exp))
@@ -648,7 +648,7 @@ Examples:
                     save_result(e, out_dir)
                     saved_count += 1
                 except Exception as e2:
-                    print(f"  ⚠️  Save failed: {e2}")
+                    print(f"  WARNING: Save failed: {e2}")
             print(f"  Saved {len(pending)} (total: {saved_count})")
             pending = []
 
@@ -659,7 +659,7 @@ Examples:
             save_result(e, out_dir)
             saved_count += 1
         except Exception as e2:
-            print(f"  ⚠️  Save failed: {e2}")
+            print(f"  WARNING: Save failed: {e2}")
     if pending:
         print(f"  Saved remaining (total: {saved_count})")
 
