@@ -6,10 +6,10 @@ Those folders remain complete analysis exports; this script creates a smaller
 paper-ready set with cleaner typography and figure organization.
 
 Output:
-  exp2(generation_blind)/paper_plots/main/png/
-  exp2(generation_blind)/paper_plots/main/pdf/
-  exp2(generation_blind)/paper_plots/appendix/png/
-  exp2(generation_blind)/paper_plots/appendix/pdf/
+  exp2(generation_blind)/paper_plots_exp2/main/png/
+  exp2(generation_blind)/paper_plots_exp2/main/pdf/
+  exp2(generation_blind)/paper_plots_exp2/appendix/png/
+  exp2(generation_blind)/paper_plots_exp2/appendix/pdf/
 
 Usage:
   python tools_exp2/plot_paper_plots.py
@@ -32,7 +32,7 @@ from plot_output import EXPORT_DPI, expected_pdf_files, mirror_png_to_pdf, split
 
 EXP2_ROOT = os.path.join(os.path.dirname(__file__), '..', 'exp2(generation_blind)')
 RESULT_ROOT = os.path.join(EXP2_ROOT, 'analysis_results')
-PAPER_ROOT = os.path.join(EXP2_ROOT, 'paper_plots')
+PAPER_ROOT = os.path.join(EXP2_ROOT, 'paper_plots_exp2')
 MAIN_ROOT = os.path.join(PAPER_ROOT, 'main')
 APPENDIX_ROOT = os.path.join(PAPER_ROOT, 'appendix')
 MAIN_PNG, MAIN_PDF = split_output_roots(MAIN_ROOT)
@@ -277,7 +277,7 @@ def plot_main_identity_condition(cum_rows, outdir):
     for label, ax in zip(['(a)', '(b)', '(c)', '(d)'], axes):
         ax.text(-0.14, 1.05, label, transform=ax.transAxes, fontweight='bold', va='top')
     fig.tight_layout(rect=[0, 0, 1, 0.96], pad=0.8)
-    path = os.path.join(outdir, 'fig2_identity_condition_effect.png')
+    path = os.path.join(outdir, 'figA3_identity_condition_effect.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
     print(f'  Plot -> {path}')
@@ -314,7 +314,7 @@ def plot_main_identity_condition_nonmarkov(cum_rows, outdir):
                     continue
                 n = len(by_w[int(w)])
                 raw_rows.append({
-                    'figure': 'fig2-2_identity_condition_probability_side',
+                    'figure': 'figA4_identity_condition_probability_side',
                     'metric': metric,
                     'metric_label': title,
                     'side': side,
@@ -344,11 +344,11 @@ def plot_main_identity_condition_nonmarkov(cum_rows, outdir):
     fig.text(0.985, 0.02, 'shaded bands: 95% CI; lower is better',
              ha='right', va='bottom', fontsize=7, color='0.35')
     fig.tight_layout(rect=[0, 0, 1, 0.86], pad=0.8)
-    path = os.path.join(outdir, 'fig2-2_identity_condition_probability_side.png')
+    path = os.path.join(outdir, 'figA4_identity_condition_probability_side.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
     print(f'  Plot -> {path}')
-    raw_path = os.path.join(outdir, 'fig2-2_identity_condition_probability_side_raw.csv')
+    raw_path = os.path.join(outdir, 'figA4_identity_condition_probability_side_raw.csv')
     with open(raw_path, 'w', newline='', encoding='utf-8') as f:
         fieldnames = [
             'figure', 'metric', 'metric_label', 'side', 'condition',
@@ -358,6 +358,256 @@ def plot_main_identity_condition_nonmarkov(cum_rows, outdir):
         writer.writeheader()
         writer.writerows(raw_rows)
     print(f'  Data -> {raw_path}')
+
+
+def _distribution_delta_rows(cum_rows):
+    raw_windows = {1, 2, 5, 10}
+    metric_specs = [
+        ('ce_cum', 'Distribution CE'),
+        ('mse_cum', 'Distribution MSE'),
+    ]
+    condition_specs = [
+        ('Overall', None, '#111111', 'o'),
+        ('Correct', 1, '#D62728', 's'),
+        ('Incorrect', 0, '#1F77B4', '^'),
+    ]
+
+    raw_rows = []
+    for metric, metric_label in metric_specs:
+        for condition_label, condition_value, _, _ in condition_specs:
+            markov_by_w = _condition_values_by_window(cum_rows, metric, condition_value, 'markov_correct')
+            nonmarkov_by_w = _condition_values_by_window(cum_rows, metric, condition_value, 'nonmarkov_correct')
+            for w in sorted(raw_windows):
+                markov_vals = markov_by_w.get(w, [])
+                nonmarkov_vals = nonmarkov_by_w.get(w, [])
+                markov_mean, _, markov_n = _mean_ci(markov_vals)
+                nonmarkov_mean, _, nonmarkov_n = _mean_ci(nonmarkov_vals)
+                if markov_n == 0 or nonmarkov_n == 0 or nonmarkov_mean == 0:
+                    continue
+                delta_pct = (markov_mean - nonmarkov_mean) / nonmarkov_mean * 100.0
+                raw_rows.append({
+                    'metric': metric,
+                    'metric_label': metric_label,
+                    'condition': condition_label,
+                    'window_end': w * 100,
+                    'markov_mean': markov_mean,
+                    'nonmarkov_mean': nonmarkov_mean,
+                    'delta_pct': delta_pct,
+                    'markov_n': markov_n,
+                    'nonmarkov_n': nonmarkov_n,
+                })
+    return raw_rows, condition_specs
+
+
+def _plot_distribution_delta_panel(ax, raw_rows, condition_specs, metric, title, show_legend=False):
+    metric_rows = [r for r in raw_rows if r['metric'] == metric]
+    for condition_label, _, color, marker in condition_specs:
+        rows_for_condition = [r for r in metric_rows if r['condition'] == condition_label]
+        rows_for_condition = sorted(rows_for_condition, key=lambda r: r['window_end'])
+        xs = [r['window_end'] for r in rows_for_condition]
+        ys = [r['delta_pct'] for r in rows_for_condition]
+        ax.plot(xs, ys, marker=marker, linewidth=1.9, markersize=5.0,
+                color=color, label=condition_label)
+        for x, y in zip(xs, ys):
+            offset = 2.4 if y >= 0 else -2.4
+            va = 'bottom' if y >= 0 else 'top'
+            ax.annotate(f'{y:.1f}%', xy=(x, y), xytext=(0, offset),
+                        textcoords='offset points', ha='center', va=va,
+                        color=color, fontsize=7.2,
+                        bbox=dict(boxstyle='round,pad=0.10', facecolor='white',
+                                  edgecolor='none', alpha=0.86))
+    ax.axhline(0, color='0.45', linestyle='--', linewidth=1.0)
+    ax.set_title(title)
+    ax.set_xlabel('Context Length')
+    ax.set_ylabel('Delta (%)')
+    ax.set_xticks([100, 200, 500, 1000])
+    ax.grid(True)
+    ax.set_ylim(-20, 130 if metric == 'mse_cum' else 21.5)
+    if metric == 'ce_cum':
+        ax.set_ylim(-9, 21.5)
+    if show_legend:
+        ax.legend(loc='upper center', ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.22))
+
+
+def _strict_accuracy_rows(cum_rows):
+    models = _models_present(cum_rows)
+    raw_rows = []
+    for model in models:
+        model_rows = [r for r in cum_rows if r.get('model') == model]
+        seen_files = set()
+        acc_vals = []
+        for r in model_rows:
+            key = (r.get('model'), r.get('file_idx'), r.get('player1_id'), r.get('player2_id'))
+            if key in seen_files:
+                continue
+            seen_files.add(key)
+            acc = _to_float(r.get('both_correct'))
+            if acc is not None:
+                acc_vals.append(acc)
+        overall_acc, acc_ci, acc_n = _mean_ci(acc_vals)
+
+        by_w = defaultdict(list)
+        for r in model_rows:
+            value = _to_float(r.get('strict_cum'))
+            w = _to_int(r.get('window_idx'))
+            if value is not None and w is not None:
+                by_w[w].append(value)
+        xs_arr, ys_arr, _ = _mean_ci_arrays(by_w)
+        for w, strict_mean in zip(xs_arr, ys_arr):
+            raw_rows.append({
+                'model': model,
+                'model_label': MODEL_LABELS[model],
+                'window_idx': int(w),
+                'window_end': int(w) * 100,
+                'overall_accuracy': overall_acc,
+                'overall_accuracy_ci95': acc_ci,
+                'overall_accuracy_n': acc_n,
+                'cumulative_strict_rate': strict_mean,
+                'cumulative_strict_n': len(by_w[int(w)]),
+                'difference': strict_mean - overall_acc,
+            })
+    return raw_rows
+
+
+def _plot_strict_accuracy_panel(ax, raw_rows, show_legend=False, legend_position='right'):
+    models = [m for m in MODEL_ORDER if any(r['model'] == m for r in raw_rows)]
+    for model in models:
+        rows_for_model = sorted([r for r in raw_rows if r['model'] == model], key=lambda r: r['window_end'])
+        if not rows_for_model:
+            continue
+        xs = [r['window_end'] for r in rows_for_model]
+        ys = [r['cumulative_strict_rate'] for r in rows_for_model]
+        acc = rows_for_model[0]['overall_accuracy']
+        ax.plot(xs, ys, marker='o', linewidth=1.6, markersize=3.5,
+                color=MODEL_COLORS[model], label=MODEL_LABELS[model])
+        ax.axhline(acc, color=MODEL_COLORS[model], linestyle='--', linewidth=1.15, alpha=0.72)
+    ax.set_title('Strict rule match and identity accuracy')
+    ax.set_ylabel('Rate')
+    ax.set_xlabel('Generated rounds')
+    ax.set_ylim(0, 1.05)
+    ax.set_yticks(np.arange(0, 1.01, 0.1))
+    ax.set_xticks(range(100, 1001, 100))
+    ax.grid(True)
+    if show_legend:
+        model_handles, model_labels = ax.get_legend_handles_labels()
+        if legend_position == 'inside':
+            model_legend = ax.legend(model_handles, model_labels, loc='upper right',
+                                     ncol=1, frameon=False, fontsize=7.5)
+        elif legend_position == 'top':
+            model_legend = ax.legend(model_handles, model_labels, loc='upper center',
+                                     ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.20),
+                                     fontsize=7.5)
+        else:
+            model_legend = ax.legend(model_handles, model_labels, loc='upper left',
+                                     ncol=1, frameon=False, bbox_to_anchor=(1.02, 1.02),
+                                     fontsize=7)
+        ax.add_artist(model_legend)
+        type_handles = [
+            Line2D([0], [0], color='0.35', linestyle='-', linewidth=1.6),
+            Line2D([0], [0], color='0.35', linestyle='--', linewidth=1.15),
+        ]
+        type_labels = ['solid = strict match', 'dashed = identity accuracy']
+        if legend_position == 'inside':
+            ax.legend(type_handles, type_labels, loc='upper left', ncol=1,
+                      frameon=False, fontsize=7.2)
+        elif legend_position == 'top':
+            ax.legend(type_handles, type_labels, loc='upper center', ncol=2,
+                      frameon=False, bbox_to_anchor=(0.5, 1.08), fontsize=7.2)
+        else:
+            ax.legend(type_handles, type_labels, loc='upper left', ncol=1,
+                      frameon=False, bbox_to_anchor=(1.02, 0.52), fontsize=7)
+
+
+def _write_rows(path, fieldnames, rows):
+    with open(path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f'  Data -> {path}')
+
+
+def plot_main_mse_strict_accuracy(cum_rows, outdir):
+    """Main Figure 2: MSE delta and strict/identity relationship."""
+    delta_rows, condition_specs = _distribution_delta_rows(cum_rows)
+    strict_rows = _strict_accuracy_rows(cum_rows)
+
+    fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.25))
+    _plot_distribution_delta_panel(
+        axes[0], delta_rows, condition_specs, 'mse_cum',
+        'Distribution MSE delta', show_legend=True,
+    )
+    _plot_strict_accuracy_panel(axes[1], strict_rows, show_legend=True, legend_position='inside')
+    for label, ax in zip(['(a)', '(b)'], axes):
+        ax.text(-0.12, 1.04, label, transform=ax.transAxes, fontweight='bold',
+                ha='left', va='top')
+    fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8, w_pad=1.2)
+
+    path = os.path.join(outdir, 'fig2_mse_strict_accuracy.png')
+    fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
+    plt.close(fig)
+    print(f'  Plot -> {path}')
+
+    _write_rows(
+        os.path.join(outdir, 'fig2_mse_delta_raw.csv'),
+        ['metric', 'metric_label', 'condition', 'window_end',
+         'markov_mean', 'nonmarkov_mean', 'delta_pct', 'markov_n', 'nonmarkov_n'],
+        [r for r in delta_rows if r['metric'] == 'mse_cum'],
+    )
+    _write_rows(
+        os.path.join(outdir, 'fig2_strict_identity_raw.csv'),
+        ['model', 'model_label', 'window_idx', 'window_end',
+         'overall_accuracy', 'overall_accuracy_ci95', 'overall_accuracy_n',
+         'cumulative_strict_rate', 'cumulative_strict_n', 'difference'],
+        strict_rows,
+    )
+
+
+def plot_main_split_mse_delta(cum_rows, outdir):
+    """Main Figure 2-1: standalone MSE delta panel."""
+    delta_rows, condition_specs = _distribution_delta_rows(cum_rows)
+    fig, ax = plt.subplots(figsize=(4.8, 3.4))
+    _plot_distribution_delta_panel(
+        ax, delta_rows, condition_specs, 'mse_cum',
+        'Distribution MSE delta', show_legend=True,
+    )
+    fig.tight_layout(rect=[0, 0, 1, 0.88], pad=0.8)
+    path = os.path.join(outdir, 'fig2-1_mse_delta.png')
+    fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
+    plt.close(fig)
+    print(f'  Plot -> {path}')
+
+
+def plot_main_split_strict_identity(cum_rows, outdir):
+    """Main Figure 2-2: standalone strict rule match and identity accuracy panel."""
+    strict_rows = _strict_accuracy_rows(cum_rows)
+    fig, ax = plt.subplots(figsize=(7.8, 4.25))
+    _plot_strict_accuracy_panel(ax, strict_rows, show_legend=True, legend_position='inside')
+    fig.tight_layout(rect=[0, 0, 1, 0.96], pad=0.8)
+    path = os.path.join(outdir, 'fig2-2_strict_identity_accuracy.png')
+    fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
+    plt.close(fig)
+    print(f'  Plot -> {path}')
+
+
+def plot_appendix_ce_delta(cum_rows, outdir):
+    """Appendix Figure A1: CE delta separated from main Figure 2."""
+    delta_rows, condition_specs = _distribution_delta_rows(cum_rows)
+    fig, ax = plt.subplots(figsize=(4.4, 3.2))
+    _plot_distribution_delta_panel(
+        ax, delta_rows, condition_specs, 'ce_cum',
+        'Distribution CE delta', show_legend=True,
+    )
+    fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8)
+    path = os.path.join(outdir, 'figA1_distribution_ce_delta.png')
+    fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
+    plt.close(fig)
+    print(f'  Plot -> {path}')
+    _write_rows(
+        os.path.join(outdir, 'figA1_distribution_ce_delta_raw.csv'),
+        ['metric', 'metric_label', 'condition', 'window_end',
+         'markov_mean', 'nonmarkov_mean', 'delta_pct', 'markov_n', 'nonmarkov_n'],
+        [r for r in delta_rows if r['metric'] == 'ce_cum'],
+    )
 
 
 def plot_appendix_rule_breakdown_xyz(rows, outdir):
@@ -404,7 +654,7 @@ def plot_appendix_rule_breakdown_xyz(rows, outdir):
     for label, ax in zip(['(a)', '(b)'], axes):
         ax.text(-0.16, 1.08, label, transform=ax.transAxes, fontweight='bold', va='top')
     fig.tight_layout(rect=[0, 0, 1, 0.92], pad=0.8)
-    path = os.path.join(outdir, 'figA6_rule_breakdown_xyz.png')
+    path = os.path.join(outdir, 'figA10_rule_breakdown_xyz.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
     print(f'  Plot -> {path}')
@@ -425,26 +675,129 @@ def plot_main_strict_cumulative_dynamics(cum_rows, outdir):
             if value is not None and w is not None:
                 by_w[w].append(value)
         xs_arr, ys_arr, ci_arr = _mean_ci_arrays(by_w)
-        ax.plot(xs_arr, ys_arr, marker='o', linewidth=1.6, markersize=3.5,
+        round_ends = xs_arr * 100
+        ax.plot(round_ends, ys_arr, marker='o', linewidth=1.6, markersize=3.5,
                 color=MODEL_COLORS[model], label=MODEL_LABELS[model])
-        ax.fill_between(xs_arr, np.maximum(0, ys_arr - ci_arr), np.minimum(1, ys_arr + ci_arr),
-                        color=MODEL_COLORS[model], alpha=0.10, linewidth=0)
     ax.set_title('Cumulative strict rule match')
     ax.set_ylabel('Cumulative strict rate')
-    ax.set_xlabel('Window index')
+    ax.set_xlabel('Generated rounds')
     ax.set_ylim(0, 1.05)
     ax.set_yticks(np.arange(0, 1.01, 0.1))
-    ax.set_xticks(range(1, 11))
+    ax.set_xticks(range(100, 1001, 100))
     ax.grid(True)
 
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.03))
-    fig.text(0.985, 0.02, 'shaded bands: 95% CI', ha='right', va='bottom', fontsize=7, color='0.35')
     fig.tight_layout(rect=[0, 0, 1, 0.92], pad=0.8)
-    path = os.path.join(outdir, 'fig3_cumulative_strict_rule_match.png')
+    path = os.path.join(outdir, 'figA2_cumulative_strict_rule_match.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
     print(f'  Plot -> {path}')
+
+
+def plot_main_accuracy_strict_relationship(cum_rows, outdir):
+    """Main Figure 3-2: Figure 3 clone with identification accuracy reference lines."""
+    models = _models_present(cum_rows)
+    raw_rows = []
+    fig, ax = plt.subplots(figsize=(6.6, 3.2))
+
+    for model in models:
+        model_rows = [r for r in cum_rows if r.get('model') == model]
+
+        seen_files = set()
+        acc_vals = []
+        for r in model_rows:
+            key = (r.get('model'), r.get('file_idx'), r.get('player1_id'), r.get('player2_id'))
+            if key in seen_files:
+                continue
+            seen_files.add(key)
+            acc = _to_float(r.get('both_correct'))
+            if acc is not None:
+                acc_vals.append(acc)
+        overall_acc, acc_ci, acc_n = _mean_ci(acc_vals)
+
+        by_w = defaultdict(list)
+        for r in model_rows:
+            value = _to_float(r.get('strict_cum'))
+            w = _to_int(r.get('window_idx'))
+            if value is not None and w is not None:
+                by_w[w].append(value)
+
+        xs_arr, ys_arr, _ = _mean_ci_arrays(by_w)
+        if len(xs_arr) == 0:
+            continue
+        round_ends = xs_arr * 100
+        ax.plot(round_ends, ys_arr, marker='o', linewidth=1.6, markersize=3.5,
+                color=MODEL_COLORS[model], label=MODEL_LABELS[model])
+        ax.axhline(overall_acc, color=MODEL_COLORS[model], linestyle='--',
+                   linewidth=1.15, alpha=0.72)
+
+        for w, strict_mean in zip(xs_arr, ys_arr):
+            raw_rows.append({
+                'model': model,
+                'model_label': MODEL_LABELS[model],
+                'window_idx': int(w),
+                'window_end': int(w) * 100,
+                'overall_accuracy': overall_acc,
+                'overall_accuracy_ci95': acc_ci,
+                'overall_accuracy_n': acc_n,
+                'cumulative_strict_rate': strict_mean,
+                'cumulative_strict_n': len(by_w[int(w)]),
+                'difference': strict_mean - overall_acc,
+            })
+
+    ax.set_title('Cumulative strict rule match across generated rounds')
+    ax.set_ylabel('Rate')
+    ax.set_xlabel('Generated rounds')
+    ax.set_ylim(0, 1.05)
+    ax.set_yticks(np.arange(0, 1.01, 0.1))
+    ax.set_xticks(range(100, 1001, 100))
+    ax.grid(True)
+
+    model_handles, model_labels = ax.get_legend_handles_labels()
+    model_legend = fig.legend(
+        model_handles,
+        model_labels,
+        loc='upper center',
+        ncol=4,
+        frameon=False,
+        bbox_to_anchor=(0.5, 1.08),
+    )
+    fig.add_artist(model_legend)
+    type_handles = [
+        Line2D([0], [0], color='0.35', linestyle='-', linewidth=1.6),
+        Line2D([0], [0], color='0.35', linestyle='--', linewidth=1.15),
+    ]
+    type_labels = [
+        'solid = cumulative strict rule match',
+        'dashed = overall identity accuracy',
+    ]
+    fig.legend(
+        type_handles,
+        type_labels,
+        loc='upper center',
+        ncol=2,
+        frameon=False,
+        bbox_to_anchor=(0.5, 0.995),
+    )
+    fig.tight_layout(rect=[0, 0, 1, 0.82], pad=0.8)
+
+    path = os.path.join(outdir, 'fig3-2_accuracy_strict_relationship.png')
+    fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
+    plt.close(fig)
+    print(f'  Plot -> {path}')
+
+    raw_path = os.path.join(outdir, 'fig3-2_accuracy_strict_relationship_raw.csv')
+    with open(raw_path, 'w', newline='', encoding='utf-8') as f:
+        fieldnames = [
+            'model', 'model_label', 'window_idx', 'window_end',
+            'overall_accuracy', 'overall_accuracy_ci95', 'overall_accuracy_n',
+            'cumulative_strict_rate', 'cumulative_strict_n', 'difference',
+        ]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(raw_rows)
+    print(f'  Data -> {raw_path}')
 
 
 def _file_rows(rows):
@@ -515,7 +868,7 @@ def plot_appendix_binary_confusion(rows, outdir):
     axes[1, 0].set_ylabel('Actual\nExact ID')
 
     fig.tight_layout(pad=0.7)
-    path = os.path.join(outdir, 'figA1_binary_confusion.png')
+    path = os.path.join(outdir, 'figA5_binary_confusion.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
     print(f'  Plot -> {path}')
@@ -557,7 +910,7 @@ def plot_appendix_full_confusion(rows, outdir):
     cax = fig.add_axes([0.89, 0.22, 0.025, 0.56])
     cbar = fig.colorbar(im, cax=cax)
     cbar.set_label('Row-normalized proportion')
-    path = os.path.join(outdir, 'figA2_full_identity_confusion.png')
+    path = os.path.join(outdir, 'figA6_full_identity_confusion.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
     print(f'  Plot -> {path}')
@@ -690,18 +1043,18 @@ def plot_appendix_strategy_generation(rows, outdir):
         'ce',
         'CE',
         'Distribution CE by true strategy',
-        os.path.join(outdir, 'figA3a_strategy_ce_by_model.png'),
+        os.path.join(outdir, 'figA7a_strategy_ce_by_model.png'),
     )
     _plot_strategy_metric_by_model(
         values['mse'],
         'mse',
         'MSE',
         'Distribution MSE by true strategy',
-        os.path.join(outdir, 'figA3b_strategy_mse_by_model.png'),
+        os.path.join(outdir, 'figA7b_strategy_mse_by_model.png'),
     )
     _plot_strategy_overall_summary(
         values,
-        os.path.join(outdir, 'figA3c_strategy_overall_summary.png'),
+        os.path.join(outdir, 'figA7c_strategy_overall_summary.png'),
     )
 
 
@@ -743,7 +1096,7 @@ def plot_appendix_per_model_cumulative(cum_rows, outdir):
     fig.legend(handles, labels, loc='upper center', ncol=2, frameon=False, bbox_to_anchor=(0.5, 1.03))
     fig.text(0.985, 0.015, 'shaded bands: 95% CI', ha='right', va='bottom', fontsize=7, color='0.35')
     fig.tight_layout(rect=[0, 0, 1, 0.93], pad=0.8)
-    path = os.path.join(outdir, 'figA4_per_model_cumulative_diagnostics.png')
+    path = os.path.join(outdir, 'figA8_per_model_cumulative_diagnostics.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
     print(f'  Plot -> {path}')
@@ -783,7 +1136,7 @@ def plot_appendix_distribution_diagnostics(cum_rows, outdir):
     fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.03))
     fig.text(0.985, 0.015, 'shaded bands: 95% CI', ha='right', va='bottom', fontsize=7, color='0.35')
     fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8)
-    path = os.path.join(outdir, 'figA5_distribution_diagnostics.png')
+    path = os.path.join(outdir, 'figA9_distribution_diagnostics.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
     print(f'  Plot -> {path}')
@@ -800,32 +1153,40 @@ def main():
 
     main_expected = {
         'fig1_rule_following_summary.png',
-        'fig2_identity_condition_effect.png',
-        'fig2-2_identity_condition_probability_side.png',
-        'fig3_cumulative_strict_rule_match.png',
+        'fig2_mse_strict_accuracy.png',
+        'fig2-1_mse_delta.png',
+        'fig2-2_strict_identity_accuracy.png',
     }
     appendix_expected = {
-        'figA1_binary_confusion.png',
-        'figA2_full_identity_confusion.png',
-        'figA3a_strategy_ce_by_model.png',
-        'figA3b_strategy_mse_by_model.png',
-        'figA3c_strategy_overall_summary.png',
-        'figA4_per_model_cumulative_diagnostics.png',
-        'figA5_distribution_diagnostics.png',
-        'figA6_rule_breakdown_xyz.png',
+        'figA1_distribution_ce_delta.png',
+        'figA2_cumulative_strict_rule_match.png',
+        'figA3_identity_condition_effect.png',
+        'figA4_identity_condition_probability_side.png',
+        'figA5_binary_confusion.png',
+        'figA6_full_identity_confusion.png',
+        'figA7a_strategy_ce_by_model.png',
+        'figA7b_strategy_mse_by_model.png',
+        'figA7c_strategy_overall_summary.png',
+        'figA8_per_model_cumulative_diagnostics.png',
+        'figA9_distribution_diagnostics.png',
+        'figA10_rule_breakdown_xyz.png',
     }
 
     print('\nGenerating paper main figures ...')
     with mirror_png_to_pdf(MAIN_PNG, MAIN_PDF):
         plot_main_rule_following(rows, MAIN_PNG)
-        plot_main_identity_condition(cum_rows, MAIN_PNG)
-        plot_main_identity_condition_nonmarkov(cum_rows, MAIN_PNG)
-        plot_main_strict_cumulative_dynamics(cum_rows, MAIN_PNG)
+        plot_main_mse_strict_accuracy(cum_rows, MAIN_PNG)
+        plot_main_split_mse_delta(cum_rows, MAIN_PNG)
+        plot_main_split_strict_identity(cum_rows, MAIN_PNG)
     verify_expected(MAIN_PNG, main_expected)
     verify_expected(MAIN_PDF, expected_pdf_files(main_expected))
 
     print('\nGenerating paper appendix figures ...')
     with mirror_png_to_pdf(APPENDIX_PNG, APPENDIX_PDF):
+        plot_appendix_ce_delta(cum_rows, APPENDIX_PNG)
+        plot_main_strict_cumulative_dynamics(cum_rows, APPENDIX_PNG)
+        plot_main_identity_condition(cum_rows, APPENDIX_PNG)
+        plot_main_identity_condition_nonmarkov(cum_rows, APPENDIX_PNG)
         plot_appendix_binary_confusion(rows, APPENDIX_PNG)
         plot_appendix_full_confusion(rows, APPENDIX_PNG)
         plot_appendix_strategy_generation(rows, APPENDIX_PNG)

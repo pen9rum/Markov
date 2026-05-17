@@ -6,10 +6,10 @@ from Exp2/XYZ as the baseline, then comparing it with Exp3/QRS, TUV, and
 XYZ-opp complex Markov rule families.
 
 Output:
-  exp3(complex_markov)/paper_plots/main/png/
-  exp3(complex_markov)/paper_plots/main/pdf/
-  exp3(complex_markov)/paper_plots/appendix/png/
-  exp3(complex_markov)/paper_plots/appendix/pdf/
+  exp3(complex_markov)/paper_plots_exp3/main/png/
+  exp3(complex_markov)/paper_plots_exp3/main/pdf/
+  exp3(complex_markov)/paper_plots_exp3/appendix/png/
+  exp3(complex_markov)/paper_plots_exp3/appendix/pdf/
 """
 import csv
 import math
@@ -31,7 +31,7 @@ ROOT = os.path.join(os.path.dirname(__file__), '..')
 EXP2_RESULT_ROOT = os.path.join(ROOT, 'exp2(generation_blind)', 'analysis_results')
 EXP3_ROOT = os.path.join(ROOT, 'exp3(complex_markov)')
 EXP3_RESULT_ROOT = os.path.join(EXP3_ROOT, 'analysis_results')
-PAPER_ROOT = os.path.join(EXP3_ROOT, 'paper_plots')
+PAPER_ROOT = os.path.join(EXP3_ROOT, 'paper_plots_exp3')
 MAIN_ROOT = os.path.join(PAPER_ROOT, 'main')
 APPENDIX_ROOT = os.path.join(PAPER_ROOT, 'appendix')
 MAIN_PNG, MAIN_PDF = split_output_roots(MAIN_ROOT)
@@ -346,16 +346,15 @@ def plot_main_cumulative_strict(rows_by_family, outdir):
         xs_arr = np.array(xs)
         ys_arr = np.array(means)
         ci_arr = np.array(cis)
-        ax.plot(xs_arr, ys_arr, marker='o', linewidth=1.6, markersize=3.5,
+        round_ends = xs_arr * 100
+        ax.plot(round_ends, ys_arr, marker='o', linewidth=1.6, markersize=3.5,
                 color=FAMILY_COLORS[family], label=FAMILY_TITLES[family])
-        ax.fill_between(xs_arr, np.maximum(0, ys_arr - ci_arr), np.minimum(1, ys_arr + ci_arr),
-                        color=FAMILY_COLORS[family], alpha=0.10, linewidth=0)
 
     ax.set_ylabel('Cumulative strict rate')
-    ax.set_xlabel('Window index')
+    ax.set_xlabel('Generated rounds')
     ax.set_ylim(0, 1.05)
     ax.set_yticks(np.arange(0, 1.01, 0.1))
-    ax.set_xticks(range(1, 11))
+    ax.set_xticks(range(100, 1001, 100))
     ax.grid(True)
     ax.legend(loc='upper center', ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.16))
     fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8)
