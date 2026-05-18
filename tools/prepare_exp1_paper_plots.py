@@ -210,6 +210,12 @@ def main() -> None:
     df["samples"] = pd.to_numeric(df["samples"])
     make_markov_strict_2x2(df, app_png, app_pdf)
     make_forecasting_3panel(df, app_png, app_pdf)
+    copy_pair(
+        plots / "others" / "png" / "accuracy_8lines_markov_nonmarkov_95ci_gap.png",
+        plots / "others" / "pdf" / "accuracy_8lines_markov_nonmarkov_95ci_gap.pdf",
+        app_png,
+        app_pdf,
+    )
 
     print(main_png / "accuracy_8lines_markov_nonmarkov_95ci.png")
     print(app_png / "ols_input_length_vs_accuracy.png")
@@ -218,6 +224,7 @@ def main() -> None:
     print(paper / "appendix" / "confusion_matrix" / "png" / "confusion_matrix_all.png")
     print(app_png / "markov_strict_metrics_2x2.png")
     print(app_png / "forecasting_metrics_3panel.png")
+    print(app_png / "accuracy_8lines_markov_nonmarkov_95ci_gap.png")
 
 
 if __name__ == "__main__":

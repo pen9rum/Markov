@@ -62,16 +62,9 @@ def plot_accuracy_8lines(csv_path: Path, output_dir: Path, show: bool = False) -
     models = [m for m in MODEL_ORDER if m in set(df["model"])]
     models += [m for m in df["model"].unique() if m not in models]
 
-    panel_specs = [
-        ("nonmarkov_acc", "(a) Non-Markov players", "accuracy"),
-        ("markov_recall_strict", "(b) Markov players", "accuracy"),
-        ("gap", "(c) Markov - Non-Markov", "gap"),
-    ]
-
-    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.75))
     plot_rows = []
 
-    for ax, (col, panel_title, panel_type) in zip(axes, panel_specs):
+    def draw_panel(ax, col: str, panel_title: str, panel_type: str) -> None:
         for model in models:
             model_data = df[df["model"] == model].sort_values("rounds")
             color = MODEL_COLORS.get(model, "#333333")
@@ -151,11 +144,21 @@ def plot_accuracy_8lines(csv_path: Path, output_dir: Path, show: bool = False) -
         if panel_type == "gap":
             ax.axhline(0, color="#555555", linewidth=0.9, linestyle=(0, (3, 2)), zorder=1)
             ax.set_ylim(-0.55, 0.55)
+            ax.set_ylabel("Accuracy difference")
         else:
             ax.set_ylim(0.0, 1.02)
+            ax.set_ylabel("Accuracy")
 
-    axes[0].set_ylabel("Accuracy")
-    axes[2].set_ylabel("Accuracy difference")
+    main_panel_specs = [
+        ("nonmarkov_acc", "(a) Non-Markov players", "accuracy"),
+        ("markov_recall_strict", "(b) Markov players", "accuracy"),
+    ]
+    gap_panel_spec = ("gap", "Markov - Non-Markov", "gap")
+
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.75), sharey=True)
+    for ax, (col, panel_title, panel_type) in zip(axes, main_panel_specs):
+        draw_panel(ax, col, panel_title, panel_type)
+    axes[1].set_ylabel("")
 
     model_handles = [
         Line2D([0], [0], color=MODEL_COLORS.get(model, "#333333"), lw=2.2, marker="o", markersize=4.2, label=MODEL_LABELS.get(model, model))
@@ -171,7 +174,21 @@ def plot_accuracy_8lines(csv_path: Path, output_dir: Path, show: bool = False) -
         handlelength=2.0,
         columnspacing=1.15,
     )
-    fig.subplots_adjust(left=0.070, right=0.990, top=0.90, bottom=0.24, wspace=0.22)
+    fig.subplots_adjust(left=0.090, right=0.990, top=0.90, bottom=0.24, wspace=0.18)
+
+    gap_fig, gap_ax = plt.subplots(1, 1, figsize=(4.2, 3.75))
+    draw_panel(gap_ax, *gap_panel_spec)
+    gap_fig.legend(
+        handles=model_handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.02),
+        ncol=2,
+        frameon=False,
+        borderaxespad=0.0,
+        handlelength=2.0,
+        columnspacing=1.15,
+    )
+    gap_fig.subplots_adjust(left=0.170, right=0.985, top=0.90, bottom=0.28)
 
     png_dir = output_dir / "others" / "png"
     pdf_dir = output_dir / "others" / "pdf"
@@ -181,16 +198,22 @@ def plot_accuracy_8lines(csv_path: Path, output_dir: Path, show: bool = False) -
     data_dir.mkdir(parents=True, exist_ok=True)
 
     stem = "accuracy_8lines_markov_nonmarkov_95ci"
+    gap_stem = f"{stem}_gap"
     pd.DataFrame(plot_rows).to_csv(data_dir / f"{stem}_raw_data.csv", index=False)
     fig.savefig(png_dir / f"{stem}.png", dpi=400, bbox_inches="tight")
     fig.savefig(pdf_dir / f"{stem}.pdf", dpi=400, bbox_inches="tight")
+    gap_fig.savefig(png_dir / f"{gap_stem}.png", dpi=400, bbox_inches="tight")
+    gap_fig.savefig(pdf_dir / f"{gap_stem}.pdf", dpi=400, bbox_inches="tight")
     if show:
         plt.show()
     else:
         plt.close(fig)
+        plt.close(gap_fig)
 
     print(png_dir / f"{stem}.png")
     print(pdf_dir / f"{stem}.pdf")
+    print(png_dir / f"{gap_stem}.png")
+    print(pdf_dir / f"{gap_stem}.pdf")
     print(data_dir / f"{stem}_raw_data.csv")
 
 
