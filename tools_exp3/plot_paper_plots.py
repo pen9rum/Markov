@@ -45,6 +45,18 @@ FAMILY_LABELS = {
     'tuv': 'TUV',
     'xyz_opp': 'XYZ-opp',
 }
+MAIN_FAMILY_LABELS = {
+    'exp2_xyz': '1st-order\nopp-only',
+    'qrs': '1st-order\njoint',
+    'xyz_opp': '2nd-order\nopp-only',
+    'tuv': '2nd-order\njoint',
+}
+MAIN_FAMILY_TITLES = {
+    'exp2_xyz': 'First-order opponent-only',
+    'qrs': 'First-order joint-state',
+    'xyz_opp': 'Second-order opponent-only',
+    'tuv': 'Second-order joint-state',
+}
 FAMILY_TITLES = {
     'exp2_xyz': 'XYZ',
     'qrs': 'QRS',
@@ -72,13 +84,15 @@ FAMILY_COLORS = {
 
 def _setup_style():
     plt.rcParams.update({
-        'font.size': 9,
-        'axes.titlesize': 9,
-        'axes.labelsize': 9,
-        'xtick.labelsize': 8,
-        'ytick.labelsize': 8,
-        'legend.fontsize': 8,
-        'figure.titlesize': 10,
+        'font.size': 11,
+        'axes.titlesize': 11,
+        'axes.titleweight': 'bold',
+        'axes.labelsize': 11,
+        'xtick.labelsize': 10,
+        'ytick.labelsize': 10,
+        'legend.fontsize': 10,
+        'figure.titlesize': 12,
+        'figure.titleweight': 'bold',
         'axes.spines.top': False,
         'axes.spines.right': False,
         'axes.grid': True,
@@ -183,7 +197,7 @@ def plot_main_rule_following(rows_by_family, outdir):
         ('overall', 'Overall', COND_COLORS['overall']),
     ]
 
-    fig, axes = plt.subplots(1, 2, figsize=(8.2, 3.2), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(10.8, 3.6), sharey=True)
     x = np.arange(len(FAMILY_ORDER))
     width = 0.23
     offsets = (np.arange(len(cond_specs)) - 1) * width
@@ -203,7 +217,8 @@ def plot_main_rule_following(rows_by_family, outdir):
         ax.set_title(title)
         ax.set_ylabel(ylabel)
         ax.set_xticks(x)
-        ax.set_xticklabels([FAMILY_LABELS[f] for f in FAMILY_ORDER])
+        ax.set_xticklabels([MAIN_FAMILY_LABELS[f] for f in FAMILY_ORDER], fontsize=9.5)
+        ax.tick_params(axis='x', pad=7)
         ax.set_ylim(0, 1.05)
         ax.tick_params(axis='y', labelleft=True)
         ax.grid(axis='y')
@@ -215,7 +230,7 @@ def plot_main_rule_following(rows_by_family, outdir):
     fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.03))
     for label, ax in zip(['(a)', '(b)'], axes):
         ax.text(0.01, 0.98, label, transform=ax.transAxes, fontweight='bold', ha='left', va='top')
-    fig.tight_layout(rect=[0, 0, 1, 0.92], pad=0.8)
+    fig.tight_layout(rect=[0, 0.08, 1, 0.91], pad=0.8, w_pad=1.8)
     path = os.path.join(outdir, 'fig1_exp2_exp3_rule_following_comparison.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
@@ -233,7 +248,7 @@ def plot_main_identification(rows_by_family, outdir):
         ('markov_correct', 'Markov identity', '#4477AA'),
         ('nonmarkov_correct', 'Non-Markov identity', '#EE6677'),
     ]
-    fig, ax = plt.subplots(figsize=(6.6, 3.2))
+    fig, ax = plt.subplots(figsize=(7.4, 3.8))
     x = np.arange(len(FAMILY_ORDER))
     width = 0.23
     offsets = (np.arange(len(metric_specs)) - 1) * width
@@ -247,18 +262,26 @@ def plot_main_identification(rows_by_family, outdir):
             mean, ci, _ = _rate(f_rows, col)
             means.append(mean)
             cis.append(ci)
-        ax.bar(x + offset, means, width, yerr=cis, capsize=2.2,
-               color=color, edgecolor='black', linewidth=0.45, label=label)
+        ax.bar(
+            x + offset, means, width, yerr=cis, capsize=2.4,
+            color=color, edgecolor='black', linewidth=0.8, label=label,
+            error_kw={'ecolor': 'black', 'elinewidth': 0.9, 'capthick': 0.9},
+        )
 
     ax.set_ylabel('Accuracy')
     ax.set_xticks(x)
-    ax.set_xticklabels([FAMILY_LABELS[f] for f in FAMILY_ORDER])
+    ax.set_xticklabels([MAIN_FAMILY_LABELS[f] for f in FAMILY_ORDER])
     ax.set_ylim(0, 1.05)
     ax.set_yticks(np.arange(0, 1.01, 0.1))
-    ax.grid(axis='y')
+    ax.tick_params(axis='both', colors='black', width=0.9)
+    ax.spines['left'].set_color('black')
+    ax.spines['bottom'].set_color('black')
+    ax.spines['left'].set_linewidth(0.9)
+    ax.spines['bottom'].set_linewidth(0.9)
+    ax.grid(axis='y', color='0.55', alpha=0.35, linewidth=0.7)
     ax.grid(axis='x', visible=False)
-    ax.legend(loc='upper center', ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.15))
-    fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8)
+    ax.legend(loc='upper center', ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.16))
+    fig.tight_layout(rect=[0, 0, 1, 0.88], pad=0.8)
     path = os.path.join(outdir, 'fig2_exp2_exp3_identification_comparison.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
@@ -348,7 +371,7 @@ def plot_main_cumulative_strict(rows_by_family, outdir):
         ci_arr = np.array(cis)
         round_ends = xs_arr * 100
         ax.plot(round_ends, ys_arr, marker='o', linewidth=1.6, markersize=3.5,
-                color=FAMILY_COLORS[family], label=FAMILY_TITLES[family])
+                color=FAMILY_COLORS[family], label=MAIN_FAMILY_TITLES[family])
 
     ax.set_ylabel('Cumulative strict rate')
     ax.set_xlabel('Generated rounds')
@@ -356,8 +379,8 @@ def plot_main_cumulative_strict(rows_by_family, outdir):
     ax.set_yticks(np.arange(0, 1.01, 0.1))
     ax.set_xticks(range(100, 1001, 100))
     ax.grid(True)
-    ax.legend(loc='upper center', ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.16))
-    fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8)
+    ax.legend(loc='upper center', ncol=2, frameon=False, bbox_to_anchor=(0.5, 1.22))
+    fig.tight_layout(rect=[0, 0, 1, 0.84], pad=0.8)
     path = os.path.join(outdir, 'fig3_exp2_exp3_cumulative_strict_dynamics.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)

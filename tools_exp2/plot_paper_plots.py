@@ -71,13 +71,15 @@ COND_COLORS = {
 
 def _setup_style():
     plt.rcParams.update({
-        'font.size': 9,
-        'axes.titlesize': 9,
-        'axes.labelsize': 9,
-        'xtick.labelsize': 8,
-        'ytick.labelsize': 8,
-        'legend.fontsize': 8,
-        'figure.titlesize': 10,
+        'font.size': 11,
+        'axes.titlesize': 11,
+        'axes.titleweight': 'bold',
+        'axes.labelsize': 11,
+        'xtick.labelsize': 10,
+        'ytick.labelsize': 10,
+        'legend.fontsize': 10,
+        'figure.titlesize': 12,
+        'figure.titleweight': 'bold',
         'axes.spines.top': False,
         'axes.spines.right': False,
         'axes.grid': True,
@@ -159,7 +161,7 @@ def plot_main_rule_following(rows, outdir):
         (None, 'Overall', COND_COLORS['overall']),
     ]
 
-    fig, axes = plt.subplots(1, 2, figsize=(8.2, 3.2), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(9.8, 3.4), sharey=True)
     x = np.arange(len(models))
     width = 0.23
     offsets = (np.arange(len(cond_specs)) - (len(cond_specs) - 1) / 2) * width
@@ -184,10 +186,14 @@ def plot_main_rule_following(rows, outdir):
             ax.axhline(baseline, color='0.35', linestyle='--', linewidth=1.0)
         ax.set_title(title)
         ax.set_xticks(x)
-        ax.set_xticklabels([MODEL_TICK_LABELS[m] for m in models])
+        ax.set_xticklabels([MODEL_TICK_LABELS[m] for m in models], ha='center')
         ax.set_ylabel(ylabel)
         ax.set_ylim(0, 1.05)
-        ax.tick_params(axis='y', labelleft=True)
+        ax.tick_params(axis='y', labelleft=True, colors='black', width=1.2)
+        ax.yaxis.label.set_color('black')
+        ax.yaxis.label.set_fontweight('bold')
+        ax.spines['left'].set_color('black')
+        ax.spines['left'].set_linewidth(1.2)
         ax.grid(axis='y')
         ax.grid(axis='x', visible=False)
 
@@ -199,7 +205,7 @@ def plot_main_rule_following(rows, outdir):
         ax.text(0.01, 0.98, label, transform=ax.transAxes, fontweight='bold',
                 ha='left', va='top')
     fig.text(0.985, 0.02, 'error bars: 95% CI', ha='right', va='bottom', fontsize=7, color='0.35')
-    fig.tight_layout(rect=[0, 0, 1, 0.92], pad=0.8)
+    fig.tight_layout(rect=[0, 0.03, 1, 0.92], pad=0.8, w_pad=1.6)
     path = os.path.join(outdir, 'fig1_rule_following_summary.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
@@ -481,7 +487,10 @@ def _plot_strict_accuracy_panel(ax, raw_rows, show_legend=False, legend_position
         ax.plot(xs, ys, marker='o', linewidth=1.6, markersize=3.5,
                 color=MODEL_COLORS[model], label=MODEL_LABELS[model])
         ax.axhline(acc, color=MODEL_COLORS[model], linestyle='--', linewidth=1.15, alpha=0.72)
-    ax.set_title('Strict rule match and identity accuracy')
+    if legend_position == 'inside_raised':
+        ax.set_title('Strict rule match and identity accuracy', y=1.10, pad=0)
+    else:
+        ax.set_title('Strict rule match and identity accuracy')
     ax.set_ylabel('Rate')
     ax.set_xlabel('Generated rounds')
     ax.set_ylim(0, 1.05)
@@ -490,32 +499,41 @@ def _plot_strict_accuracy_panel(ax, raw_rows, show_legend=False, legend_position
     ax.grid(True)
     if show_legend:
         model_handles, model_labels = ax.get_legend_handles_labels()
-        if legend_position == 'inside':
+        if legend_position == 'inside_raised':
             model_legend = ax.legend(model_handles, model_labels, loc='upper right',
-                                     ncol=1, frameon=False, fontsize=7.5)
+                                     ncol=1, frameon=False, bbox_to_anchor=(1.0, 1.03),
+                                     fontsize=9.6, handlelength=1.5,
+                                     labelspacing=0.22, borderaxespad=0.0)
+        elif legend_position == 'inside':
+            model_legend = ax.legend(model_handles, model_labels, loc='upper right',
+                                     ncol=1, frameon=False, fontsize=9.5)
         elif legend_position == 'top':
             model_legend = ax.legend(model_handles, model_labels, loc='upper center',
                                      ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.20),
-                                     fontsize=7.5)
+                                     fontsize=9.5)
         else:
             model_legend = ax.legend(model_handles, model_labels, loc='upper left',
                                      ncol=1, frameon=False, bbox_to_anchor=(1.02, 1.02),
-                                     fontsize=7)
+                                     fontsize=9)
         ax.add_artist(model_legend)
         type_handles = [
             Line2D([0], [0], color='0.35', linestyle='-', linewidth=1.6),
             Line2D([0], [0], color='0.35', linestyle='--', linewidth=1.15),
         ]
         type_labels = ['solid = strict match', 'dashed = identity accuracy']
-        if legend_position == 'inside':
+        if legend_position == 'inside_raised':
             ax.legend(type_handles, type_labels, loc='upper left', ncol=1,
-                      frameon=False, fontsize=7.2)
+                      frameon=False, bbox_to_anchor=(0.0, 0.985), fontsize=10.0,
+                      handlelength=1.9, labelspacing=0.22, borderaxespad=0.0)
+        elif legend_position == 'inside':
+            ax.legend(type_handles, type_labels, loc='upper left', ncol=1,
+                      frameon=False, fontsize=9.2)
         elif legend_position == 'top':
             ax.legend(type_handles, type_labels, loc='upper center', ncol=2,
-                      frameon=False, bbox_to_anchor=(0.5, 1.08), fontsize=7.2)
+                      frameon=False, bbox_to_anchor=(0.5, 1.08), fontsize=9.2)
         else:
             ax.legend(type_handles, type_labels, loc='upper left', ncol=1,
-                      frameon=False, bbox_to_anchor=(1.02, 0.52), fontsize=7)
+                      frameon=False, bbox_to_anchor=(1.02, 0.52), fontsize=9)
 
 
 def _write_rows(path, fieldnames, rows):
@@ -531,16 +549,16 @@ def plot_main_mse_strict_accuracy(cum_rows, outdir):
     delta_rows, condition_specs = _distribution_delta_rows(cum_rows)
     strict_rows = _strict_accuracy_rows(cum_rows)
 
-    fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.25))
+    fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.6))
     _plot_distribution_delta_panel(
         axes[0], delta_rows, condition_specs, 'mse_cum',
         'Distribution MSE delta', show_legend=True,
     )
-    _plot_strict_accuracy_panel(axes[1], strict_rows, show_legend=True, legend_position='inside')
+    _plot_strict_accuracy_panel(axes[1], strict_rows, show_legend=True, legend_position='inside_raised')
     for label, ax in zip(['(a)', '(b)'], axes):
         ax.text(-0.12, 1.04, label, transform=ax.transAxes, fontweight='bold',
                 ha='left', va='top')
-    fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8, w_pad=1.2)
+    fig.tight_layout(rect=[0, 0, 1, 0.86], pad=0.8, w_pad=1.2)
 
     path = os.path.join(outdir, 'fig2_mse_strict_accuracy.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
@@ -565,12 +583,14 @@ def plot_main_mse_strict_accuracy(cum_rows, outdir):
 def plot_main_split_mse_delta(cum_rows, outdir):
     """Main Figure 2-1: standalone MSE delta panel."""
     delta_rows, condition_specs = _distribution_delta_rows(cum_rows)
-    fig, ax = plt.subplots(figsize=(4.8, 3.4))
+    fig, ax = plt.subplots(figsize=(6.2, 4.6))
     _plot_distribution_delta_panel(
         ax, delta_rows, condition_specs, 'mse_cum',
         'Distribution MSE delta', show_legend=True,
     )
-    fig.tight_layout(rect=[0, 0, 1, 0.88], pad=0.8)
+    ax.set_title('Distribution MSE delta', fontsize=10.5, fontweight='bold', pad=8)
+    ax.set_ylim(-24, 130)
+    fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8)
     path = os.path.join(outdir, 'fig2-1_mse_delta.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
@@ -580,9 +600,9 @@ def plot_main_split_mse_delta(cum_rows, outdir):
 def plot_main_split_strict_identity(cum_rows, outdir):
     """Main Figure 2-2: standalone strict rule match and identity accuracy panel."""
     strict_rows = _strict_accuracy_rows(cum_rows)
-    fig, ax = plt.subplots(figsize=(7.8, 4.25))
-    _plot_strict_accuracy_panel(ax, strict_rows, show_legend=True, legend_position='inside')
-    fig.tight_layout(rect=[0, 0, 1, 0.96], pad=0.8)
+    fig, ax = plt.subplots(figsize=(7.8, 4.6))
+    _plot_strict_accuracy_panel(ax, strict_rows, show_legend=True, legend_position='inside_raised')
+    fig.tight_layout(rect=[0, 0, 1, 0.88], pad=0.8)
     path = os.path.join(outdir, 'fig2-2_strict_identity_accuracy.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
@@ -592,12 +612,17 @@ def plot_main_split_strict_identity(cum_rows, outdir):
 def plot_appendix_ce_delta(cum_rows, outdir):
     """Appendix Figure A1: CE delta separated from main Figure 2."""
     delta_rows, condition_specs = _distribution_delta_rows(cum_rows)
-    fig, ax = plt.subplots(figsize=(4.4, 3.2))
+    fig, ax = plt.subplots(figsize=(5.8, 4.2))
     _plot_distribution_delta_panel(
         ax, delta_rows, condition_specs, 'ce_cum',
-        'Distribution CE delta', show_legend=True,
+        'Distribution CE delta', show_legend=False,
     )
-    fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8)
+    ax.set_title('Distribution CE delta', fontsize=10.5, fontweight='bold', pad=8)
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', ncol=3, frameon=False,
+               bbox_to_anchor=(0.5, 0.015), fontsize=9.8,
+               handlelength=1.8, columnspacing=1.4)
+    fig.tight_layout(rect=[0, 0.15, 1, 0.92], pad=0.8)
     path = os.path.join(outdir, 'figA1_distribution_ce_delta.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
     plt.close(fig)
@@ -987,7 +1012,8 @@ def _plot_strategy_metric_by_model(metric_values, metric, ylabel, title, path):
     ax.grid(axis='y')
     ax.grid(axis='x', visible=False)
     handles, labels = ax.get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', ncol=len(series_order), frameon=False, bbox_to_anchor=(0.5, 1.04))
+    fig.legend(handles, labels, loc='upper center', ncol=len(series_order),
+               frameon=False, bbox_to_anchor=(0.5, 1.05), fontsize=11.5)
     fig.text(0.985, 0.015, f'error bars: 95% CI; {metric.upper()} lower is better',
              ha='right', va='bottom', fontsize=7, color='0.35')
     fig.tight_layout(rect=[0, 0, 1, 0.90], pad=0.8)
