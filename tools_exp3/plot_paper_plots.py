@@ -228,8 +228,6 @@ def plot_main_rule_following(rows_by_family, outdir):
     handles.append(Line2D([0], [0], color='0.35', linestyle='--', linewidth=1.0))
     labels.append('random baseline')
     fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.03))
-    for label, ax in zip(['(a)', '(b)'], axes):
-        ax.text(0.01, 0.98, label, transform=ax.transAxes, fontweight='bold', ha='left', va='top')
     fig.tight_layout(rect=[0, 0.08, 1, 0.91], pad=0.8, w_pad=1.8)
     path = os.path.join(outdir, 'fig1_exp2_exp3_rule_following_comparison.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
