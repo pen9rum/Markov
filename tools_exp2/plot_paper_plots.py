@@ -184,12 +184,14 @@ def plot_main_rule_following(rows, outdir):
                    color=color, edgecolor='black', linewidth=0.45, label=label)
         if baseline is not None:
             ax.axhline(baseline, color='0.35', linestyle='--', linewidth=1.0)
-        ax.set_title(title)
+        ax.set_title(title, fontsize=13, fontweight='bold')
         ax.set_xticks(x)
         ax.set_xticklabels([MODEL_TICK_LABELS[m] for m in models], ha='center')
-        ax.set_ylabel(ylabel)
+        ax.set_ylabel(ylabel, fontsize=12, fontweight='bold')
         ax.set_ylim(0, 1.05)
         ax.tick_params(axis='y', labelleft=True, colors='black', width=1.2)
+        for tick in ax.get_yticklabels():
+            tick.set_fontweight('bold')
         ax.yaxis.label.set_color('black')
         ax.yaxis.label.set_fontweight('bold')
         ax.spines['left'].set_color('black')
@@ -200,10 +202,10 @@ def plot_main_rule_following(rows, outdir):
     handles, labels = axes[0].get_legend_handles_labels()
     handles.append(Line2D([0], [0], color='0.35', linestyle='--', linewidth=1.0))
     labels.append('random baseline')
-    fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.03))
-    for label, ax in zip(['(a)', '(b)'], axes):
-        ax.text(0.01, 0.98, label, transform=ax.transAxes, fontweight='bold',
-                ha='left', va='top')
+    fig.legend(
+        handles, labels, loc='upper center', ncol=4, frameon=False,
+        bbox_to_anchor=(0.5, 1.03), prop={'size': 11.5, 'weight': 'bold'},
+    )
     fig.text(0.985, 0.02, 'error bars: 95% CI', ha='right', va='bottom', fontsize=7, color='0.35')
     fig.tight_layout(rect=[0, 0.03, 1, 0.92], pad=0.8, w_pad=1.6)
     path = os.path.join(outdir, 'fig1_rule_following_summary.png')

@@ -214,20 +214,26 @@ def plot_main_rule_following(rows_by_family, outdir):
                    color=color, edgecolor='black', linewidth=0.45, label=label)
         if baseline is not None:
             ax.axhline(baseline, color='0.35', linestyle='--', linewidth=1.0)
-        ax.set_title(title)
-        ax.set_ylabel(ylabel)
+        ax.set_title(title, fontsize=13, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=12, fontweight='bold')
         ax.set_xticks(x)
         ax.set_xticklabels([MAIN_FAMILY_LABELS[f] for f in FAMILY_ORDER], fontsize=9.5)
         ax.tick_params(axis='x', pad=7)
         ax.set_ylim(0, 1.05)
-        ax.tick_params(axis='y', labelleft=True)
+        ax.tick_params(axis='y', labelleft=True, width=1.2)
+        for tick in ax.get_yticklabels():
+            tick.set_fontweight('bold')
+        ax.spines['left'].set_linewidth(1.2)
         ax.grid(axis='y')
         ax.grid(axis='x', visible=False)
 
     handles, labels = axes[0].get_legend_handles_labels()
     handles.append(Line2D([0], [0], color='0.35', linestyle='--', linewidth=1.0))
     labels.append('random baseline')
-    fig.legend(handles, labels, loc='upper center', ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.03))
+    fig.legend(
+        handles, labels, loc='upper center', ncol=4, frameon=False,
+        bbox_to_anchor=(0.5, 1.03), prop={'size': 11.5, 'weight': 'bold'},
+    )
     fig.tight_layout(rect=[0, 0.08, 1, 0.91], pad=0.8, w_pad=1.8)
     path = os.path.join(outdir, 'fig1_exp2_exp3_rule_following_comparison.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
@@ -266,19 +272,24 @@ def plot_main_identification(rows_by_family, outdir):
             error_kw={'ecolor': 'black', 'elinewidth': 0.9, 'capthick': 0.9},
         )
 
-    ax.set_ylabel('Accuracy')
+    ax.set_ylabel('Accuracy', fontsize=12, fontweight='bold')
     ax.set_xticks(x)
     ax.set_xticklabels([MAIN_FAMILY_LABELS[f] for f in FAMILY_ORDER])
     ax.set_ylim(0, 1.05)
     ax.set_yticks(np.arange(0, 1.01, 0.1))
-    ax.tick_params(axis='both', colors='black', width=0.9)
+    ax.tick_params(axis='both', colors='black', width=1.2)
+    for tick in ax.get_yticklabels():
+        tick.set_fontweight('bold')
     ax.spines['left'].set_color('black')
     ax.spines['bottom'].set_color('black')
-    ax.spines['left'].set_linewidth(0.9)
+    ax.spines['left'].set_linewidth(1.2)
     ax.spines['bottom'].set_linewidth(0.9)
     ax.grid(axis='y', color='0.55', alpha=0.35, linewidth=0.7)
     ax.grid(axis='x', visible=False)
-    ax.legend(loc='upper center', ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.16))
+    ax.legend(
+        loc='upper center', ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.16),
+        prop={'size': 11.5, 'weight': 'bold'},
+    )
     fig.tight_layout(rect=[0, 0, 1, 0.88], pad=0.8)
     path = os.path.join(outdir, 'fig2_exp2_exp3_identification_comparison.png')
     fig.savefig(path, dpi=EXPORT_DPI, bbox_inches='tight')
