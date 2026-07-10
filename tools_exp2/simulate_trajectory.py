@@ -133,6 +133,7 @@ def build_simulation_prompt(
     context_rounds: int,
     simulate_rounds: int,
     include_knowledge_base: bool = True,
+    strict_full_output: bool = False,
 ) -> str:
     """
     Build the English prompt for the simulation task.
@@ -158,6 +159,25 @@ def build_simulation_prompt(
         for i in range(context_rounds)
     )
 
+    strict_output_section = ""
+    if strict_full_output:
+        strict_output_section = f"""
+**STRICT FULL-OUTPUT REQUIREMENT:**
+- Do not abbreviate the simulation.
+- Do not summarize the simulation.
+- Do not use ellipses, placeholders, or truncated text.
+- Do not write analysis, explanation, bullet points, reasoning, distribution notes, or strategy discussion.
+- Output only the SIMULATION block.
+- Do not write phrases like "continue until Round {simulate_rounds}", "continues as per instructions", "omitted", "for brevity", "request the rest", "response length limit", "cuts off", or "maximum token limit".
+- Every round from Round 1 through Round {simulate_rounds} must appear explicitly as its own line.
+- In the SIMULATION block, number simulated output rows from Round 1 to Round {simulate_rounds}, not from the original game round number.
+- The first simulated line must be "Round 1: <P1 action> <P2 action>".
+- The final simulated line must be "Round {simulate_rounds}: <P1 action> <P2 action>".
+- Do not start at Round {context_rounds + 1}.
+- If you cannot complete all {simulate_rounds} rounds, output as many complete Round lines as possible and then stop immediately without any explanation or commentary.
+- Prioritize spending all output tokens on the explicit Round lines.
+"""
+
     prompt = f"""{knowledge_section}## Rock-Paper-Scissors Trajectory Simulation Task
 
 You are observing a Rock-Paper-Scissors game between two **anonymous** players (referred to as P1 and P2).
@@ -174,6 +194,7 @@ You are observing a Rock-Paper-Scissors game between two **anonymous** players (
 ---
 
 ### Your Task
+{strict_output_section}
 Simulate the next **{simulate_rounds} rounds** of this game (rounds {context_rounds + 1} to {context_rounds + simulate_rounds}).
 
 **MANDATORY: You MUST attempt to generate all {simulate_rounds} rounds no matter what.**
@@ -265,7 +286,7 @@ def parse_simulation_output(
     p1_identity = p1_id_match.group(1).upper() if p1_id_match else None
     p2_identity = p2_id_match.group(1).upper() if p2_id_match else None
     if not p1_identity or not p2_identity:
-        print("  ⚠️  Could not find P1_identity or P2_identity.")
+        print("  WARNING Could not find P1_identity or P2_identity.")
 
     # Parse round-by-round lines: "Round N: <action> <action>"
     round_pattern = re.compile(
@@ -281,7 +302,7 @@ def parse_simulation_output(
         p2_moves.append(m.group(2).capitalize())
 
     if not p1_moves:
-        print("  ⚠️  No round lines found in SIMULATION block.")
+        print("  WARNING No round lines found in SIMULATION block.")
         return None
 
     # P1 and P2 are always aligned (same line), so lengths are always equal.
@@ -289,9 +310,9 @@ def parse_simulation_output(
     got = len(p1_moves)
     complete = got >= capture_rounds
     if got < capture_rounds:
-        print(f"  ⚠️  Incomplete simulation: wanted {capture_rounds} rounds, got {got}. Keeping partial parse.")
+        print(f"  WARNING Incomplete simulation: wanted {capture_rounds} rounds, got {got}. Keeping partial parse.")
     if got > capture_rounds:
-        print(f"  ⚠️  Over-generated ({got} rounds), trimming to {capture_rounds}.")
+        print(f"  WARNING Over-generated ({got} rounds), trimming to {capture_rounds}.")
     p1_moves = p1_moves[:capture_rounds]
     p2_moves = p2_moves[:capture_rounds]
 
@@ -369,6 +390,7 @@ def run_simulation_experiment(
         context_rounds,
         simulate_rounds,
         include_knowledge_base,
+        strict_full_output=(model_name == "gpt-4.1-2025-04-14"),
     )
 
     print(f"  Calling {api_type.upper()} API ({model_name})...")
@@ -377,6 +399,7 @@ def run_simulation_experiment(
         get_response,
         get_response_gemini,
         get_response_openai,
+        get_response_openrouter,
         get_response_deepseek,
         get_response_jamba,
     )
@@ -384,8 +407,11 @@ def run_simulation_experiment(
     try:
         if api_type == "gemini":
             _, raw_output = get_response_gemini(prompt, model_name=model_name, max_tokens=16384)
+        elif api_type == "openrouter":
+            max_tokens = 32768 if model_name == "qwen/qwen3-8b" else 16384
+            _, raw_output = get_response_openrouter(prompt, model_name=model_name, max_tokens=max_tokens)
         elif api_type == "openai":
-            _, raw_output = get_response_openai(prompt, model_name=model_name, max_tokens=16384)
+            _, raw_output = get_response_openai(prompt, model_name=model_name, max_tokens=32768)
         elif api_type == "deepseek":
             # Let DeepSeek client decide model-specific defaults:
             # - deepseek-chat: max_tokens <= 8192
@@ -440,9 +466,9 @@ def run_simulation_experiment(
             "p1_window_stats": compute_window_stats(llm_p1),
             "p2_window_stats": compute_window_stats(llm_p2),
         }
-        print(f"  ✓ Parsed {len(llm_p1)} rounds (capture target: {capture_rounds})")
+        print(f"  OK Parsed {len(llm_p1)} rounds (capture target: {capture_rounds})")
         if not parsed["complete"]:
-            print(f"    ⚠️  Incomplete: only {len(llm_p1)} rounds captured")
+            print(f"    WARNING Incomplete: only {len(llm_p1)} rounds captured")
         print(f"    LLM guessed: P1={parsed['p1_identity']}, P2={parsed['p2_identity']}")
         print(f"    P1 dist: R={result['llm_simulation']['p1_stats']['rock_pct']:.1f}% "
               f"P={result['llm_simulation']['p1_stats']['paper_pct']:.1f}% "
@@ -457,7 +483,7 @@ def run_simulation_experiment(
             "complete": False,
         }
         result["error"] = "Incomplete or unparseable simulation output"
-        print("  ✗ Parsing failed (raw output saved for debugging)")
+        print("  ERROR Parsing failed (raw output saved for debugging)")
 
     return result
 
@@ -558,8 +584,9 @@ def save_result(exp: dict, output_dir: str) -> str:
 # ---------------------------------------------------------------------------
 
 MODEL_MAP = {
-    "qwen-api":           ("qwen-plus",            "qwen"),
-    "gemini":             ("gemini-3-flash-preview","gemini"),
+    "qwen-api":           ("qwen/qwen3-8b",                     "openrouter"),
+    "gemini":             ("google/gemini-3-flash-preview",     "openrouter"),
+    "gpt-4.1":            ("gpt-4.1-2025-04-14",                "openai"),
     "gpt-5-mini":         ("gpt-5-mini",            "openai"),
     "gpt-5":              ("gpt-5",                 "openai"),
     "deepseek-chat":      ("deepseek-chat",          "deepseek"),
@@ -576,16 +603,16 @@ def main():
         epilog="""
 Examples:
   # Single game
-  python tools/simulate_trajectory.py --p1 D --p2 X --context 100 --simulate 1000 --model gemini
+  python tools_exp2/simulate_trajectory.py --p1 D --p2 X --context 100 --simulate 1000 --model gemini
 
   # Batch: 10 type1 + 5 type2 + 5 type3
-  python tools/simulate_trajectory.py --type1 10 --type2 5 --type3 5 --context 100 --simulate 1000 --model gemini
+  python tools_exp2/simulate_trajectory.py --type1 10 --type2 5 --type3 5 --context 100 --simulate 1000 --model gemini
 
   # Run all combinations
-  python tools/simulate_trajectory.py --all --context 100 --simulate 1000 --model deepseek-chat
+  python tools_exp2/simulate_trajectory.py --all --context 100 --simulate 1000 --model deepseek-chat
 
   # Without knowledge base (test pure trajectory inference)
-  python tools/simulate_trajectory.py --p1 D --p2 D --context 100 --simulate 1000 --model gemini --no-kb
+  python tools_exp2/simulate_trajectory.py --p1 D --p2 D --context 100 --simulate 1000 --model gemini --no-kb
         """,
     )
 
@@ -667,7 +694,7 @@ Examples:
             TYPE_FOLDERS[combo_type],
         )
         path = save_result(exp, out_dir)
-        print(f"\n✓ Saved: {path}")
+        print(f"\nOK Saved: {path}")
         return
 
     # -----------------------------------------------------------------------
@@ -722,7 +749,7 @@ Examples:
                 api_type, model_name, use_kb,
             )
         except Exception as e:
-            print(f"  ✗ Exception: {e}")
+            print(f"  ERROR Exception: {e}")
             exp = {
                 "success": False, "error": str(e),
                 "player1_id": p1, "player2_id": p2,
@@ -741,7 +768,7 @@ Examples:
                     save_result(e, out_dir)
                     saved_count += 1
                 except Exception as e2:
-                    print(f"  ⚠️  Save failed: {e2}")
+                    print(f"  WARNING Save failed: {e2}")
             print(f"  Saved {len(pending)} results (total saved: {saved_count})")
             pending = []
 
@@ -757,7 +784,7 @@ Examples:
                 save_result(e, out_dir)
                 saved_count += 1
             except Exception as e2:
-                print(f"  ⚠️  Save failed: {e2}")
+                print(f"  WARNING Save failed: {e2}")
         print(f"  Saved {len(pending)} remaining results (total: {saved_count})")
 
     print(f"\n{'=' * 80}")

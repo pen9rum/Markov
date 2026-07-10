@@ -4,7 +4,8 @@ LLM模块 - 用于分析玩家行为 (支持多種雲端API)
 支持的模型：
 - Qwen API: qwen-plus, qwen-turbo, qwen-max-latest
 - Gemini API: gemini-3-flash-preview (Gemini 3 Flash), gemini-3.1-pro-preview (Gemini 3.1 Pro)
-- OpenAI API: gpt-5-mini, gpt-5
+- OpenAI API: gpt-4.1-2025-04-14, gpt-5-mini, gpt-5
+- OpenRouter API: google/gemini-3-flash-preview, qwen/qwen3-8b
 - Jamba API: jamba-mini, jamba-large
 """
 from typing import Tuple, Dict, Any
@@ -196,13 +197,10 @@ def get_response_openai(prompt: str,
         "model": model_name,
         "input": prompt,
         "max_output_tokens": max_tokens,
-        "reasoning": {
-            "effort": reasoning_effort
-        },
-        "text": {
-            "verbosity": verbosity
-        }
     }
+    if model_name.startswith("gpt-5"):
+        payload["reasoning"] = {"effort": reasoning_effort}
+        payload["text"] = {"verbosity": verbosity}
     payload.update(kwargs)
 
     response = requests.post(api_url, headers=headers, json=payload)
@@ -235,6 +233,50 @@ def get_response_openai(prompt: str,
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     return result, output_text
+
+
+def get_response_openrouter(prompt: str,
+                            model_name: str,
+                            api_key: str = None,
+                            max_tokens: int = 8192,
+                            temperature: float = 1.0,
+                            **kwargs) -> Tuple[dict, str]:
+    """Call OpenRouter's OpenAI-compatible chat completions endpoint."""
+    if api_key is None:
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "API key not found. Please set OPENROUTER_API_KEY environment variable "
+                "or pass api_key parameter."
+            )
+
+    api_url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        **kwargs,
+    }
+
+    response = requests.post(api_url, headers=headers, json=payload)
+    if response.status_code != 200:
+        try:
+            error_detail = response.json()
+        except Exception:
+            error_detail = response.text
+        raise Exception(f"OpenRouter API error: {response.status_code} - {error_detail}")
+
+    result = response.json()
+    output_text = result["choices"][0]["message"]["content"]
+    return result, output_text
+
 
 def get_response_deepseek(prompt: str,
                           model_name: str = "deepseek-chat",
