@@ -74,7 +74,7 @@ def get_response(prompt: str,
     }
     
     # 发送请求
-    response = requests.post(api_url, headers=headers, json=payload)
+    response = requests.post(api_url, headers=headers, json=payload, timeout=300)
     response.raise_for_status()
     
     result = response.json()
@@ -140,7 +140,7 @@ def get_response_gemini(prompt: str,
     
     # 发送请求（API key 作为查询参数）
     params = {"key": api_key}
-    response = requests.post(api_url, headers=headers, json=payload, params=params)
+    response = requests.post(api_url, headers=headers, json=payload, params=params, timeout=300)
     
     # 检查响应状态
     if response.status_code != 200:
@@ -196,16 +196,13 @@ def get_response_openai(prompt: str,
         "model": model_name,
         "input": prompt,
         "max_output_tokens": max_tokens,
-        "reasoning": {
-            "effort": reasoning_effort
-        },
-        "text": {
-            "verbosity": verbosity
-        }
     }
+    if model_name.startswith("gpt-5"):
+        payload["reasoning"] = {"effort": reasoning_effort}
+        payload["text"] = {"verbosity": verbosity}
     payload.update(kwargs)
 
-    response = requests.post(api_url, headers=headers, json=payload)
+    response = requests.post(api_url, headers=headers, json=payload, timeout=300)
 
     if response.status_code != 200:
         try:
@@ -235,6 +232,50 @@ def get_response_openai(prompt: str,
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
     return result, output_text
+
+
+def get_response_openrouter(prompt: str,
+                            model_name: str,
+                            api_key: str = None,
+                            max_tokens: int = 8192,
+                            temperature: float = 1.0,
+                            **kwargs) -> Tuple[dict, str]:
+    """Call OpenRouter's OpenAI-compatible chat completions endpoint."""
+    if api_key is None:
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "API key not found. Please set OPENROUTER_API_KEY environment variable "
+                "or pass api_key parameter."
+            )
+
+    api_url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        **kwargs,
+    }
+
+    response = requests.post(api_url, headers=headers, json=payload, timeout=300)
+    if response.status_code != 200:
+        try:
+            error_detail = response.json()
+        except Exception:
+            error_detail = response.text
+        raise Exception(f"OpenRouter API error: {response.status_code} - {error_detail}")
+
+    result = response.json()
+    output_text = result["choices"][0]["message"]["content"]
+    return result, output_text
+
 
 def get_response_deepseek(prompt: str,
                           model_name: str = "deepseek-chat",
@@ -588,6 +629,15 @@ Player2: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
             if model_name is None:
                 model_name = "gpt-5-mini"
             response, output_text = get_response_openai(prompt, model_name=model_name)
+            metadata = {
+                "model": response.get("model"),
+                "usage": response.get("usage"),
+            }
+        elif api_type.lower() == "openrouter":
+            if model_name is None:
+                model_name = "google/gemini-3-flash-preview"
+            max_tokens = 32768 if model_name == "qwen/qwen3-8b" else 16384
+            response, output_text = get_response_openrouter(prompt, model_name=model_name, max_tokens=max_tokens)
             metadata = {
                 "model": response.get("model"),
                 "usage": response.get("usage"),

@@ -157,15 +157,17 @@ def run_single_experiment(player1_id: str, player2_id: str, num_rounds: int,
     # LLM分析
     analysis_result = None
     
-    if model_choice in ["5", "6", "7", "8", "9", "10", "11", "12"]:
+    if model_choice in ["5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]:
         # 云端API (Qwen, Gemini, OpenAI, DeepSeek)
         from analysis.llm import analyze_game_trajectory
         
         # 确定API类型
         if model_choice == "6":
             api_type = "gemini"
-        elif model_choice in ["7", "8"]:
+        elif model_choice in ["7", "8", "15"]:
             api_type = "openai"
+        elif model_choice in ["13", "14"]:
+            api_type = "openrouter"
         elif model_choice in ["9", "10"]:
             api_type = "deepseek"
         elif model_choice in ["11", "12"]:
@@ -450,7 +452,7 @@ def main():
     parser.add_argument('--rounds', type=int, default=100,
                        help='每組遊戲回合數（默認: 100）')
     parser.add_argument('--model', type=str, default='gpt-5-mini',
-                       choices=['qwen-1.5b', 'qwen-3b', 'qwen-7b', 'qwen-api', 'gemini', 'gpt-5-mini', 'gpt-5', 'deepseek-chat', 'deepseek-reasoner', 'jamba-mini', 'jamba-large'],
+                       choices=['qwen-1.5b', 'qwen-3b', 'qwen-7b', 'qwen-api', 'gemini', 'gpt-4.1', 'gpt-5-mini', 'gpt-5', 'deepseek-chat', 'deepseek-reasoner', 'jamba-mini', 'jamba-large'],
                        help='LLM模型選擇（默認: gpt-5-mini）')
     parser.add_argument('--custom-model', type=str,
                        help='自定義本地模型名稱（使用此參數時忽略--model）')
@@ -472,8 +474,9 @@ def main():
             'qwen-1.5b': ('Qwen/Qwen2.5-1.5B-Instruct', '1'),
             'qwen-3b': ('Qwen/Qwen2.5-3B-Instruct', '2'),
             'qwen-7b': ('Qwen/Qwen2.5-7B-Instruct', '3'),
-            'qwen-api': ('qwen-plus', '5'),
-            'gemini': ('gemini-3-flash-preview', '6'),
+            'qwen-api': ('qwen/qwen3-8b', '13'),
+            'gemini': ('google/gemini-3-flash-preview', '14'),
+            'gpt-4.1': ('gpt-4.1-2025-04-14', '15'),
             'gpt-5-mini': ('gpt-5-mini', '7'),
             'gpt-5': ('gpt-5', '8'),
             'deepseek-chat': ('deepseek-chat', '9'),
