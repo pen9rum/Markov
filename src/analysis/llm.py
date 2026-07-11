@@ -543,33 +543,19 @@ These players adapt their strategy based on opponent's previous moves:
     return knowledge
 
 
-def analyze_game_trajectory(player1_id: str, player2_id: str, 
-                            player1_trajectory: str, player2_trajectory: str,
-                            player1_wins: int, player2_wins: int, draws: int,
-                            num_rounds: int,
-                            api_type: str = "qwen",
-                            model_name: str = None) -> Dict[str, Any]:
-    """
-    使用雲端LLM API分析游戏轨迹
-    
-    Args:
-        player1_id: 玩家1 ID
-        player2_id: 玩家2 ID
-        player1_trajectory: 玩家1轨迹
-        player2_trajectory: 玩家2轨迹
-        player1_wins: 玩家1胜场
-        player2_wins: 玩家2胜场
-        draws: 平局数
-        num_rounds: 总回合数
-        api_type: API类型，"qwen" 或 "gemini"
-        model_name: 模型名称，如果为None则使用默认值
-    
-    Returns:
-        包含分析结果的字典
-    """
+def build_game_analysis_prompt(player1_trajectory: str, player2_trajectory: str,
+                               player1_wins: int, player2_wins: int, draws: int,
+                               num_rounds: int,
+                               trajectory_block: str = None) -> str:
+    """Build the canonical Exp1 prompt; optionally replace only its trajectory block."""
     knowledge_base = get_player_knowledge_base()
-    
-    prompt = f"""{knowledge_base}
+    if trajectory_block is None:
+        trajectory_block = f"""**Player1 Trajectory**:
+{player1_trajectory}
+
+**Player2 Trajectory**:
+{player2_trajectory}"""
+    return f"""{knowledge_base}
 
 ## Game Analysis Task
 
@@ -594,11 +580,7 @@ The best solution is to follow the following steps and think step by step:
 - Total Rounds: {num_rounds}
 - Results: Player1 won {player1_wins}, Player2 won {player2_wins}, Draws {draws}
 
-**Player1 Trajectory**:
-{player1_trajectory}
-
-**Player2 Trajectory**:
-{player2_trajectory}
+{trajectory_block}
 Please respond with a detailed analysis of the players' strategies, their most likely identities, and the predicted probabilities for their next moves. Be sure to justify your reasoning based on the trajectories and the knowledge base provided.
 After your detailed analysis, start your final answer with "Final Answer:" and provide the identified player identities and the predicted probabilities in a clear format with:
 Player1: Identity, Rock count, Paper count, Scissors count
@@ -609,6 +591,36 @@ Final Answer:
 Player1: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
 Player2: <Identity>, Rock count=<int>, Paper count=<int>, Scissors count=<int>
 """
+
+
+def analyze_game_trajectory(player1_id: str, player2_id: str,
+                            player1_trajectory: str, player2_trajectory: str,
+                            player1_wins: int, player2_wins: int, draws: int,
+                            num_rounds: int,
+                            api_type: str = "qwen",
+                            model_name: str = None) -> Dict[str, Any]:
+    """
+    使用雲端LLM API分析游戏轨迹
+
+    Args:
+        player1_id: 玩家1 ID
+        player2_id: 玩家2 ID
+        player1_trajectory: 玩家1轨迹
+        player2_trajectory: 玩家2轨迹
+        player1_wins: 玩家1胜场
+        player2_wins: 玩家2胜场
+        draws: 平局数
+        num_rounds: 总回合数
+        api_type: API类型，"qwen" 或 "gemini"
+        model_name: 模型名称，如果为None则使用默认值
+
+    Returns:
+        包含分析结果的字典
+    """
+    prompt = build_game_analysis_prompt(
+        player1_trajectory, player2_trajectory, player1_wins, player2_wins,
+        draws, num_rounds
+    )
     
     print(f"\n{'='*80}")
     print(f"Sending request to {api_type.upper()} API for analysis...")
